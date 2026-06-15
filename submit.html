@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submit Request | Campus Bulletin</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module" src="firebase.js"></script>
+    <script type="module" src="./firebase.js"></script>
 </head>
 <body class="bg-slate-50 font-sans min-h-screen flex items-center justify-center p-4">
 
@@ -134,7 +134,8 @@
             };
 
             try {
-                await setDoc(doc(db, "submissions", submissionId), payload);
+                // Unified target path mapping layout configurations
+                await setDoc(doc(db, "bulletinSubmissions", submissionId), payload);
                 alert('Notice request successfully saved onto cloud database queue!');
                 this.reset();
                 if (currentRole === 'guest') {

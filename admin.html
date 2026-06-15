@@ -3,208 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | Bulletin Board</title>
+    <title>Admin Dashboard | Campus Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="./firebase.js"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen">
 
-    <nav class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
-        <div class="flex items-center space-x-4">
-            <h1 class="text-xl font-bold text-slate-800">Bulletin Admin Control Panel</h1>
-            <a href="#" onclick="logOut()" class="text-xs text-slate-500 hover:text-blue-600">Logout</a>
+    <header class="bg-slate-900 text-white px-8 py-4 flex justify-between items-center shadow-md">
+        <div>
+            <h1 class="text-xl font-bold tracking-tight">System Portal Administration</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Live Bulletin Review Control Panel</p>
         </div>
-        <span id="pendingBadge" class="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-1 rounded-full">0 Pending</span>
-    </nav>
+        <button onclick="logOut()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow">
+            Exit Panel
+        </button>
+    </header>
 
-    <main class="max-w-7xl mx-auto p-6 space-y-8">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <p class="text-xs font-semibold text-slate-500 uppercase">Pending Review</p>
-                <p id="statPending" class="text-2xl font-bold text-amber-500 mt-1">0</p>
-            </div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <p class="text-xs font-semibold text-slate-500 uppercase">Live on Display Board</p>
-                <p id="statApproved" class="text-2xl font-bold text-green-500 mt-1">0</p>
-            </div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <p class="text-xs font-semibold text-slate-500 uppercase">Total Items Processed</p>
-                <p id="statTotal" class="text-2xl font-bold text-slate-700 mt-1">0</p>
-            </div>
+    <main class="max-w-7xl mx-auto p-6 space-y-6">
+        <div class="flex justify-between items-center border-b border-slate-200 pb-4">
+            <h2 class="text-lg font-bold text-slate-800">Pending Announcement Queue</h2>
+            <span id="queueCounter" class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">0 Requests Found</span>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-4 border-b border-slate-200 bg-amber-50/50">
-                <h2 class="font-semibold text-slate-700 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                    Incoming Requests Queue (Pending Review)
-                </h2>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-sm">
-                    <thead>
-                        <tr class="border-b border-slate-200 bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
-                            <th class="p-4">Student Info</th>
-                            <th class="p-4">Entity/Affiliation</th>
-                            <th class="p-4">Message Content</th>
-                            <th class="p-4">Target Date</th>
-                            <th class="p-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody" class="divide-y divide-slate-100 text-slate-600"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-4 border-b border-slate-200 bg-green-50/50">
-                <h2 class="font-semibold text-slate-700 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                    Active Display Board Feed (Currently Live)
-                </h2>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-sm">
-                    <thead>
-                        <tr class="border-b border-slate-200 bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
-                            <th class="p-4">Displaying Entity</th>
-                            <th class="p-4">Message Content</th>
-                            <th class="p-4">Target Date</th>
-                            <th class="p-4 text-right">Emergency Control</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activeBoardBody" class="divide-y divide-slate-100 text-slate-600"></tbody>
-                </table>
-            </div>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <th class="p-4">Applicant Info</th>
+                        <th class="p-4">Affiliation Target</th>
+                        <th class="p-4">Target Date</th>
+                        <th class="p-4">Announcement Message</th>
+                        <th class="p-4 text-center">Status Control Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="adminQueueTableBody" class="text-sm divide-y divide-slate-100 text-slate-700">
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-400 font-medium bg-slate-50/50">
+                            Initializing remote handshake configuration modules...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </main>
 
-    <dialog id="denialModal" class="backdrop:bg-slate-900/40 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200">
-        <h3 class="text-base font-bold text-slate-800 mb-2">Deny Request</h3>
-        <form method="dialog" id="denialForm" class="space-y-4">
-            <input type="hidden" id="modalSubmissionId">
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Reason for Rejection</label>
-                <textarea id="denialReasonText" required rows="3" placeholder="State reason..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:border-red-500"></textarea>
-            </div>
-            <div class="flex justify-end space-x-2 pt-2">
-                <button type="button" onclick="closeDenialModal()" class="px-4 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
-                <button type="submit" class="px-4 py-2 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg">Confirm Denial</button>
-            </div>
-        </form>
-    </dialog>
+    <script type="module">
+        import { collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-    <script>
-        // Route Guard Verification
+        // Route gatekeeper access validation configurations
         if (sessionStorage.getItem('bulletinSessionRole') !== 'admin') {
-            alert('Unauthorized Access.');
+            alert('Admin structural validation signature missing. Redirection active.');
             window.location.href = 'index.html';
         }
 
-        const tableBody = document.getElementById('tableBody');
-        const activeBoardBody = document.getElementById('activeBoardBody');
-        const modal = document.getElementById('denialModal');
-        
-        function getSubmissions() { return JSON.parse(localStorage.getItem('bulletinSubmissions')) || []; }
+        async function fetchSubmissions() {
+            const db = window.db;
+            const tableBody = document.getElementById('adminQueueTableBody');
+            const counter = document.getElementById('queueCounter');
 
-        function updateMetrics(items) {
-            const pending = items.filter(i => i.status === 'pending').length;
-            const approved = items.filter(i => i.status === 'approved').length;
-            document.getElementById('pendingBadge').innerText = `${pending} Pending`;
-            document.getElementById('statPending').innerText = pending;
-            document.getElementById('statApproved').innerText = approved;
-            document.getElementById('statTotal').innerText = items.length;
-        }
-
-        function renderDashboards() {
-            const submissions = getSubmissions();
-            updateMetrics(submissions);
-            
-            // Render Queue
-            tableBody.innerHTML = '';
-            const pending = submissions.filter(i => i.status === 'pending');
-            if(pending.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">No pending requests found.</td></tr>`;
-            } else {
-                pending.forEach(item => {
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-slate-50/80";
-                    tr.innerHTML = `
-                        <td class="p-4">
-                            <div class="font-medium text-slate-800">${item.fullName}</div>
-                            <div class="text-xs text-slate-400">UID: ${item.universityId} • Account: @${item.username}</div>
-                        </td>
-                        <td class="p-4">
-                            <div class="font-medium text-slate-700">${item.affiliationName}</div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${item.affiliationType === 'Club' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}">${item.affiliationType}</span>
-                        </td>
-                        <td class="p-4 max-w-xs truncate">${item.message}</td>
-                        <td class="p-4 font-mono text-xs">${item.displayDate}</td>
-                        <td class="p-4 text-right space-x-2 whitespace-nowrap">
-                            <button onclick="updateStatus('${item.id}', 'approved')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition">Approve</button>
-                            <button onclick="openDenialModal('${item.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition">Deny</button>
-                        </td>`;
-                    tableBody.appendChild(tr);
-                });
+            // Asynchronous loader catch framework matching core elements
+            if (!db) {
+                setTimeout(fetchSubmissions, 250);
+                return;
             }
 
-            // Render Active Live Display List
-            activeBoardBody.innerHTML = '';
-            const approved = submissions.filter(i => i.status === 'approved');
-            if(approved.length === 0) {
-                activeBoardBody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400">No notice cards active.</td></tr>`;
-            } else {
-                approved.forEach(item => {
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-slate-50/80";
-                    tr.innerHTML = `
-                        <td class="p-4"><div class="font-semibold text-slate-800">${item.affiliationName}</div></td>
-                        <td class="p-4 max-w-md break-words">${item.message}</td>
-                        <td class="p-4 font-mono text-xs">${item.displayDate}</td>
-                        <td class="p-4 text-right">
-                            <button onclick="removeItemFromBoard('${item.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm">Remove from Board</button>
-                        </td>`;
-                    activeBoardBody.appendChild(tr);
-                });
-            }
-        }
+            try {
+                // Unified Firestore structural pathway query instance target
+                const querySnapshot = await getDocs(collection(db, "bulletinSubmissions"));
+                tableBody.innerHTML = "";
+                let count = 0;
 
-        function updateStatus(id, newStatus, reason = '') {
-            let submissions = getSubmissions();
-            const target = submissions.find(i => i.id === id);
-            
-            submissions = submissions.map(item => {
-                if(item.id === id) {
-                    item.status = newStatus;
-                    if(reason) item.denialReason = reason;
+                if (querySnapshot.empty) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-slate-400 font-medium">
+                                No submissions found in database index.
+                            </td>
+                        </tr>`;
+                    counter.innerText = "0 Requests Found";
+                    return;
                 }
-                return item;
-            });
-            localStorage.setItem('bulletinSubmissions', JSON.stringify(submissions));
-            
-            alert(`[Simulated Email Forward Notification]\nTo: ${target.preferredEmail}\nStatus Update applied successfully.`);
-            renderDashboards();
-        }
 
-        function removeItemFromBoard(id) {
-            if(confirm('Revoke display access permissions for this card?')) {
-                let submissions = getSubmissions();
-                submissions = submissions.map(i => { if(i.id === id) i.status = 'removed'; return i; });
-                localStorage.setItem('bulletinSubmissions', JSON.stringify(submissions));
-                renderDashboards();
+                querySnapshot.forEach((documentInstance) => {
+                    const item = documentInstance.data();
+                    count++;
+
+                    // Color coordinate standard state layout tokens
+                    let statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800">Pending</span>`;
+                    if (item.status === 'approved') statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">Approved</span>`;
+                    if (item.status === 'rejected') statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-100 text-rose-800">Rejected</span>`;
+
+                    const tableRow = document.createElement('tr');
+                    tableRow.className = "hover:bg-slate-50/70 transition";
+                    tableRow.innerHTML = `
+                        <td class="p-4">
+                            <div class="font-semibold text-slate-800">${item.fullName || 'Unknown'}</div>
+                            <div class="text-xs text-slate-400 font-mono mt-0.5">ID: ${item.universityId || '---'}</div>
+                            <div class="text-xs text-blue-600 underline">${item.preferredEmail || '---'}</div>
+                        </td>
+                        <td class="p-4 font-medium text-slate-600">
+                            <span class="text-xs font-bold text-slate-400 uppercase block">${item.affiliationType || 'Club'}</span>
+                            ${item.affiliationName || 'General Listing'}
+                        </td>
+                        <td class="p-4 font-mono text-xs font-semibold text-slate-600">
+                            ${item.displayDate || 'Immediate'}
+                        </td>
+                        <td class="p-4 max-w-xs break-words text-slate-600 leading-relaxed text-xs">
+                            ${item.message || 'No string payload recorded.'}
+                        </td>
+                        <td class="p-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <button data-id="${item.id}" data-action="approved" class="action-btn bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-2.5 py-1.5 rounded transition shadow-sm">
+                                    Approve
+                                </button>
+                                <button data-id="${item.id}" data-action="rejected" class="action-btn bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs px-2.5 py-1.5 rounded transition shadow-sm">
+                                    Reject
+                                </button>
+                                <div class="ml-2">${statusPill}</div>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(tableRow);
+                });
+
+                counter.innerText = `${count} Request(s) Evaluated`;
+                attachButtonListeners();
+
+            } catch (err) {
+                tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500 font-bold">Error loading database index paths: ${err.message}</td></tr>`;
             }
         }
 
-        function openDenialModal(id) { document.getElementById('modalSubmissionId').value = id; modal.showModal(); }
-        function closeDenialModal() { modal.close(); }
+        function attachButtonListeners() {
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const targetState = e.target.getAttribute('data-action');
+                    const db = window.db;
 
-        document.getElementById('denialForm').addEventListener('submit', function(e) {
-            const id = document.getElementById('modalSubmissionId').value;
-            const reason = document.getElementById('denialReasonText').value;
-            updateStatus(id, 'denied', reason);
-            closeDenialModal();
-        });
+                    if (!db || !id) return;
 
-        renderDashboards();
+                    try {
+                        const reference = doc(db, "bulletinSubmissions", id);
+                        await updateDoc(reference, { status: targetState });
+                        alert(`Request node set to [${targetState.toUpperCase()}] successfully.`);
+                        fetchSubmissions(); // Instantly rebuild table metrics
+                    } catch (err) {
+                        alert("State migration failed layout bounds: " + err.message);
+                    }
+                });
+            });
+        }
+
+        // Initialize queue scanning pipelines
+        fetchSubmissions();
+    </script>
+    <script>
         function logOut() { sessionStorage.clear(); window.location.href = 'index.html'; }
     </script>
 </body>
