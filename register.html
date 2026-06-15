@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register | Campus Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module" src="firebase.js"></script>
+    <script type="module" src="./firebase.js"></script>
 </head>
 <body class="bg-slate-900 font-sans min-h-screen flex items-center justify-center p-4">
 
@@ -62,14 +62,26 @@
     <script type="module">
         import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const db = window.db;
-            if (!db) {
-                setTimeout(() => { document.getElementById('registerForm').requestSubmit(); }, 300);
-                return;
+        const registerForm = document.getElementById('registerForm');
+        const submitBtn = registerForm.querySelector('button[type="submit"]');
+
+        // Prevent clicking before Firebase downloads completely over the network
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-60', 'cursor-not-allowed');
+        submitBtn.innerText = "Connecting to Cloud...";
+
+        // Periodically verify when firebase.js has successfully bound the database 
+        const checkDb = setInterval(() => {
+            if (window.db) {
+                clearInterval(checkDb);
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                submitBtn.innerText = "Register Account";
             }
+        }, 100);
+
+        registerForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
 
             const username = document.getElementById('regUsername').value.trim().toLowerCase();
             const password = document.getElementById('regPassword').value;
@@ -80,14 +92,15 @@
 
             errorBox.classList.add('hidden');
 
-            if(username === 'admin') {
+            if (username === 'admin') {
                 errorBox.innerText = "System keyword reserved for Root Administrator access.";
                 errorBox.classList.remove('hidden');
                 return;
             }
 
             try {
-                const userDocRef = doc(db, "users", username);
+                // Read from the globally verified reference link
+                const userDocRef = doc(window.db, "users", username);
                 const userDocSnap = await getDoc(userDocRef);
 
                 if (userDocSnap.exists()) {
@@ -96,12 +109,13 @@
                     return;
                 }
 
+                // Write the profile map directly to Firestore database root
                 await setDoc(userDocRef, { username, password, fullName, universityId, preferredEmail });
 
                 alert('Account successfully created on cloud database! Moving to gateway login.');
                 window.location.href = 'index.html';
             } catch (err) {
-                errorBox.innerText = "Error: " + err.message;
+                errorBox.innerText = "Database Write Error: " + err.message;
                 errorBox.classList.remove('hidden');
             }
         });
