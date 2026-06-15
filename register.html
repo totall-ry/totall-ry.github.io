@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | Campus Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 font-sans min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 space-y-5">
+        <div class="text-center">
+            <h2 class="text-2xl font-bold text-slate-800">Create Account</h2>
+            <p class="text-sm text-slate-500 mt-1">Register as a student system member</p>
+        </div>
+
+        <form id="registerForm" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Username</label>
+                <input type="text" id="regUsername" required placeholder="Choose a unique username" 
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
+                <input type="password" id="regPassword" required placeholder="••••••••" 
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
+            </div>
+            <div class="border-t border-slate-100 pt-3">
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Full Name</label>
+                <input type="text" id="regFullName" required placeholder="John Doe" 
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">University ID</label>
+                <input type="text" id="regUid" required minlength="10" maxlength="10" pattern="[0-9]*"
+                    title="University ID must be exactly 10 digits long and contain only numbers." placeholder="10 Digits (e.g. 1234567890)" 
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Preferred Notification Email</label>
+                <input type="email" id="regEmail" required placeholder="you@university.edu" 
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
+            </div>
+
+            <div id="errorBox" class="text-red-500 text-xs hidden text-center font-medium bg-red-50 py-2 rounded-lg border border-red-100"></div>
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition text-sm mt-2">
+                Register Account
+            </button>
+        </form>
+
+        <div class="border-t border-slate-100 pt-4 text-center text-xs text-slate-500">
+            Already have an account? <a href="index.html" class="font-medium text-blue-600 hover:underline">Log in here</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('regUsername').value.trim().toLowerCase();
+            const password = document.getElementById('regPassword').value;
+            const fullName = document.getElementById('regFullName').value.trim();
+            const universityId = document.getElementById('regUid').value;
+            const preferredEmail = document.getElementById('regEmail').value.trim();
+            const errorBox = document.getElementById('errorBox');
+
+            errorBox.classList.add('hidden');
+
+            if(username === 'admin') {
+                errorBox.innerText = "System keyword reserved for Root Administrator access.";
+                errorBox.classList.remove('hidden');
+                return;
+            }
+
+            const currentUsers = JSON.parse(localStorage.getItem('bulletinUsers')) || [];
+            
+            // Validate account uniqueness
+            if(currentUsers.some(user => user.username === username)) {
+                errorBox.innerText = "Username already taken. Choose another.";
+                errorBox.classList.remove('hidden');
+                return;
+            }
+
+            // Record newly engineered data map profile package
+            currentUsers.push({ username, password, fullName, universityId, preferredEmail });
+            localStorage.setItem('bulletinUsers', JSON.stringify(currentUsers));
+
+            alert('Account successfully created! Proceeding back to gateway login.');
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>

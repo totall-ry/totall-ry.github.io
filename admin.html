@@ -11,13 +11,12 @@
     <nav class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
         <div class="flex items-center space-x-4">
             <h1 class="text-xl font-bold text-slate-800">Bulletin Admin Control Panel</h1>
-            <a href="index.html" class="text-xs text-slate-500 hover:text-blue-600">Logout</a>
+            <a href="#" onclick="logOut()" class="text-xs text-slate-500 hover:text-blue-600">Logout</a>
         </div>
         <span id="pendingBadge" class="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-1 rounded-full">0 Pending</span>
     </nav>
 
     <main class="max-w-7xl mx-auto p-6 space-y-8">
-
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                 <p class="text-xs font-semibold text-slate-500 uppercase">Pending Review</p>
@@ -77,73 +76,39 @@
                 </table>
             </div>
         </div>
-
     </main>
 
     <dialog id="denialModal" class="backdrop:bg-slate-900/40 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200">
         <h3 class="text-base font-bold text-slate-800 mb-2">Deny Request</h3>
-        <p class="text-xs text-slate-500 mb-4">Provide an administrative reason. This breakdown will automatically simulate an email routing notification to the user.</p>
-
         <form method="dialog" id="denialForm" class="space-y-4">
-            <input type="hidden" id="modalSubmissionId" name="submissionId">
+            <input type="hidden" id="modalSubmissionId">
             <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Reason for Rejection</label>
-                <textarea id="denialReasonText" required rows="3" placeholder="Identify missing structural info, formatting issues, policy clash..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-red-500 resize-none"></textarea>
+                <textarea id="denialReasonText" required rows="3" placeholder="State reason..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:border-red-500"></textarea>
             </div>
             <div class="flex justify-end space-x-2 pt-2">
-                <button type="button" onclick="closeDenialModal()" class="px-4 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg transition">Cancel</button>
-                <button type="submit" class="px-4 py-2 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition">Send Denial & Email</button>
+                <button type="button" onclick="closeDenialModal()" class="px-4 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg">Confirm Denial</button>
             </div>
         </form>
     </dialog>
 
-    <script type="module">
-        import { db } from "./firebase.js";
-        import {
-            collection,
-            onSnapshot,
-            doc,
-            updateDoc,
-            deleteDoc,
-            serverTimestamp
-        } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+    <script>
+        // Route Guard Verification
+        if (sessionStorage.getItem('bulletinSessionRole') !== 'admin') {
+            alert('Unauthorized Access.');
+            window.location.href = 'index.html';
+        }
 
         const tableBody = document.getElementById('tableBody');
         const activeBoardBody = document.getElementById('activeBoardBody');
         const modal = document.getElementById('denialModal');
-
-        let submissions = [];
-
-        function normalizeItem(item) {
-            return {
-                docId: item.docId,
-                id: item.docId,
-                fullName: item.fullName || '',
-                universityId: item.universityId || '',
-                preferredEmail: item.preferredEmail || '',
-                affiliationType: item.affiliationType || 'Club',
-                affiliationName: item.affiliationName || '',
-                displayDate: item.displayDate || '',
-                message: item.message || '',
-                status: item.status || 'pending',
-                denialReason: item.denialReason || '',
-                createdAt: item.createdAt || 0,
-                reviewedAt: item.reviewedAt || null
-            };
-        }
-
-        function sortByCreatedAt(items) {
-            return [...items].sort((a, b) => {
-                const ta = typeof a.createdAt === 'object' && a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt || 0);
-                const tb = typeof b.createdAt === 'object' && b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt || 0);
-                return ta - tb;
-            });
-        }
+        
+        function getSubmissions() { return JSON.parse(localStorage.getItem('bulletinSubmissions')) || []; }
 
         function updateMetrics(items) {
             const pending = items.filter(i => i.status === 'pending').length;
             const approved = items.filter(i => i.status === 'approved').length;
-
             document.getElementById('pendingBadge').innerText = `${pending} Pending`;
             document.getElementById('statPending').innerText = pending;
             document.getElementById('statApproved').innerText = approved;
@@ -151,144 +116,96 @@
         }
 
         function renderDashboards() {
-            const items = sortByCreatedAt(submissions.map(normalizeItem));
-            updateMetrics(items);
-
+            const submissions = getSubmissions();
+            updateMetrics(submissions);
+            
+            // Render Queue
             tableBody.innerHTML = '';
-            const pendingItems = items.filter(item => item.status === 'pending');
-
-            if (pendingItems.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">No pending submissions found in queue.</td></tr>`;
+            const pending = submissions.filter(i => i.status === 'pending');
+            if(pending.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">No pending requests found.</td></tr>`;
             } else {
-                pendingItems.forEach(item => {
+                pending.forEach(item => {
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50/80";
                     tr.innerHTML = `
                         <td class="p-4">
                             <div class="font-medium text-slate-800">${item.fullName}</div>
-                            <div class="text-xs text-slate-400">ID: ${item.universityId} • ${item.preferredEmail}</div>
+                            <div class="text-xs text-slate-400">UID: ${item.universityId} • Account: @${item.username}</div>
                         </td>
                         <td class="p-4">
                             <div class="font-medium text-slate-700">${item.affiliationName}</div>
-                            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md ${item.affiliationType === 'Club' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}">
-                                ${item.affiliationType}
-                            </span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${item.affiliationType === 'Club' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}">${item.affiliationType}</span>
                         </td>
-                        <td class="p-4 max-w-xs truncate" title="${item.message}">${item.message}</td>
+                        <td class="p-4 max-w-xs truncate">${item.message}</td>
                         <td class="p-4 font-mono text-xs">${item.displayDate}</td>
                         <td class="p-4 text-right space-x-2 whitespace-nowrap">
-                            <button onclick="updateStatus('${item.docId}', 'approved')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium text-xs transition">Approve</button>
-                            <button onclick="openDenialModal('${item.docId}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-medium text-xs transition">Deny</button>
-                        </td>
-                    `;
+                            <button onclick="updateStatus('${item.id}', 'approved')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition">Approve</button>
+                            <button onclick="openDenialModal('${item.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition">Deny</button>
+                        </td>`;
                     tableBody.appendChild(tr);
                 });
             }
 
+            // Render Active Live Display List
             activeBoardBody.innerHTML = '';
-            const approvedItems = items.filter(item => item.status === 'approved');
-
-            if (approvedItems.length === 0) {
-                activeBoardBody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400">No active notices are currently displayed on the live board.</td></tr>`;
+            const approved = submissions.filter(i => i.status === 'approved');
+            if(approved.length === 0) {
+                activeBoardBody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400">No notice cards active.</td></tr>`;
             } else {
-                approvedItems.forEach(item => {
+                approved.forEach(item => {
                     const tr = document.createElement('tr');
-                    tr.className = "hover:bg-slate-50/80 bg-green-50/10";
+                    tr.className = "hover:bg-slate-50/80";
                     tr.innerHTML = `
-                        <td class="p-4">
-                            <div class="font-semibold text-slate-800">${item.affiliationName}</div>
-                            <div class="text-xs text-slate-400">Submitted by: ${item.fullName}</div>
-                        </td>
+                        <td class="p-4"><div class="font-semibold text-slate-800">${item.affiliationName}</div></td>
                         <td class="p-4 max-w-md break-words">${item.message}</td>
                         <td class="p-4 font-mono text-xs">${item.displayDate}</td>
                         <td class="p-4 text-right">
-                            <button onclick="removeItemFromBoard('${item.docId}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg font-medium text-xs transition shadow-sm">
-                                Remove from Board
-                            </button>
-                        </td>
-                    `;
+                            <button onclick="removeItemFromBoard('${item.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm">Remove from Board</button>
+                        </td>`;
                     activeBoardBody.appendChild(tr);
                 });
             }
         }
 
-        async function updateStatus(id, newStatus, reason = '') {
-            try {
-                const payload = {
-                    status: newStatus,
-                    reviewedAt: serverTimestamp()
-                };
-
-                if (newStatus === 'denied') {
-                    payload.denialReason = reason || '';
+        function updateStatus(id, newStatus, reason = '') {
+            let submissions = getSubmissions();
+            const target = submissions.find(i => i.id === id);
+            
+            submissions = submissions.map(item => {
+                if(item.id === id) {
+                    item.status = newStatus;
+                    if(reason) item.denialReason = reason;
                 }
+                return item;
+            });
+            localStorage.setItem('bulletinSubmissions', JSON.stringify(submissions));
+            
+            alert(`[Simulated Email Forward Notification]\nTo: ${target.preferredEmail}\nStatus Update applied successfully.`);
+            renderDashboards();
+        }
 
-                await updateDoc(doc(db, "bulletinSubmissions", id), payload);
-
-                const matchingItem = submissions.find(item => item.docId === id);
-                if (matchingItem && newStatus === 'approved') {
-                    alert(`[Simulated Email Sent]\nTo: ${matchingItem.preferredEmail}\nSubject: Request Approved!\nYour notice for "${matchingItem.affiliationName}" is now active on the public board.`);
-                } else if (matchingItem && newStatus === 'denied') {
-                    alert(`[Simulated Email Sent]\nTo: ${matchingItem.preferredEmail}\nSubject: Request Denied\nReason: ${reason}`);
-                }
-            } catch (error) {
-                console.error(error);
-                alert('Failed to update status.');
+        function removeItemFromBoard(id) {
+            if(confirm('Revoke display access permissions for this card?')) {
+                let submissions = getSubmissions();
+                submissions = submissions.map(i => { if(i.id === id) i.status = 'removed'; return i; });
+                localStorage.setItem('bulletinSubmissions', JSON.stringify(submissions));
+                renderDashboards();
             }
         }
 
-        async function removeItemFromBoard(id) {
-            const matchingItem = submissions.find(item => item.docId === id);
-            const label = matchingItem ? matchingItem.affiliationName : id;
-            if (!confirm(`Are you sure you want to manually remove the notice for "${label}" from the public display board?`)) return;
+        function openDenialModal(id) { document.getElementById('modalSubmissionId').value = id; modal.showModal(); }
+        function closeDenialModal() { modal.close(); }
 
-            try {
-                await updateDoc(doc(db, "bulletinSubmissions", id), {
-                    status: 'removed',
-                    reviewedAt: serverTimestamp()
-                });
-            } catch (error) {
-                console.error(error);
-                alert('Failed to remove item from board.');
-            }
-        }
-
-        function openDenialModal(id) {
-            document.getElementById('modalSubmissionId').value = id;
-            document.getElementById('denialReasonText').value = '';
-            modal.showModal();
-        }
-
-        function closeDenialModal() {
-            modal.close();
-        }
-
-        document.getElementById('denialForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        document.getElementById('denialForm').addEventListener('submit', function(e) {
             const id = document.getElementById('modalSubmissionId').value;
-            const reason = document.getElementById('denialReasonText').value.trim();
-            await updateStatus(id, 'denied', reason);
+            const reason = document.getElementById('denialReasonText').value;
+            updateStatus(id, 'denied', reason);
             closeDenialModal();
         });
 
-        onSnapshot(collection(db, "bulletinSubmissions"), (snapshot) => {
-            submissions = [];
-            snapshot.forEach(docSnap => {
-                submissions.push({
-                    docId: docSnap.id,
-                    ...docSnap.data()
-                });
-            });
-            renderDashboards();
-        }, (error) => {
-            console.error(error);
-            alert('Failed to load submissions.');
-        });
-
-        window.updateStatus = updateStatus;
-        window.openDenialModal = openDenialModal;
-        window.closeDenialModal = closeDenialModal;
-        window.removeItemFromBoard = removeItemFromBoard;
+        renderDashboards();
+        function logOut() { sessionStorage.clear(); window.location.href = 'index.html'; }
     </script>
 </body>
 </html>
