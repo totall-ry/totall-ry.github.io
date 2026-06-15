@@ -20,9 +20,17 @@
     </header>
 
     <main class="max-w-7xl mx-auto p-6 space-y-6">
-        <div class="flex justify-between items-center border-b border-slate-200 pb-4">
-            <h2 class="text-lg font-bold text-slate-800">Pending Announcement Queue</h2>
-            <span id="queueCounter" class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">0 Requests Found</span>
+        
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+            <div class="flex gap-4">
+                <button id="tabPendingBtn" onclick="switchTab('pending')" class="border-b-2 border-blue-600 text-blue-600 font-bold text-sm pb-2 px-2 transition focus:outline-none">
+                    Pending Queue (<span id="pendingCounter">0</span>)
+                </button>
+                <button id="tabHistoryBtn" onclick="switchTab('history')" class="border-b-2 border-transparent text-slate-400 hover:text-slate-600 font-semibold text-sm pb-2 px-2 transition focus:outline-none">
+                    Review History (<span id="historyCounter">0</span>)
+                </button>
+            </div>
+            <span id="queueCounter" class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">Viewing: Pending Queue</span>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -33,7 +41,7 @@
                         <th class="p-4">Affiliation Target</th>
                         <th class="p-4">Target Date</th>
                         <th class="p-4">Announcement Message</th>
-                        <th class="p-4 text-center">Status Control Actions</th>
+                        <th class="p-4 text-center" id="actionColumnHeader">Status Control Actions</th>
                     </tr>
                 </thead>
                 <tbody id="adminQueueTableBody" class="text-sm divide-y divide-slate-100 text-slate-700">
@@ -50,84 +58,121 @@
     <script type="module">
         import { collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
+        // Global dashboard state track variables
+        let currentTab = 'pending'; 
+        let allSubmissionsCached = [];
+
         if (sessionStorage.getItem('bulletinSessionRole') !== 'admin') {
             alert('Admin structural validation signature missing. Redirection active.');
             window.location.href = 'index.html';
         }
 
-        async function fetchSubmissions() {
+        async function loadDatabaseData() {
             const db = window.db;
             const tableBody = document.getElementById('adminQueueTableBody');
-            const counter = document.getElementById('queueCounter');
 
             if (!db) {
-                setTimeout(fetchSubmissions, 250);
+                setTimeout(loadDatabaseData, 250);
                 return;
             }
 
             try {
                 const querySnapshot = await getDocs(collection(db, "bulletinSubmissions"));
-                tableBody.innerHTML = "";
-                let count = 0;
-
-                if (querySnapshot.empty) {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="p-8 text-center text-slate-400 font-medium">
-                                No submissions found in database index.
-                            </td>
-                        </tr>`;
-                    counter.innerText = "0 Requests Found";
-                    return;
-                }
-
-                querySnapshot.forEach((documentInstance) => {
-                    const item = documentInstance.data();
-                    count++;
-
-                    let statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800">Pending</span>`;
-                    if (item.status === 'approved') statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">Approved</span>`;
-                    if (item.status === 'rejected') statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-100 text-rose-800">Rejected</span>`;
-
-                    const tableRow = document.createElement('tr');
-                    tableRow.className = "hover:bg-slate-50/70 transition";
-                    tableRow.innerHTML = `
-                        <td class="p-4">
-                            <div class="font-semibold text-slate-800">${item.fullName || 'Unknown'}</div>
-                            <div class="text-xs text-slate-400 font-mono mt-0.5">ID: ${item.universityId || '---'}</div>
-                            <div class="text-xs text-blue-600 underline">${item.preferredEmail || '---'}</div>
-                        </td>
-                        <td class="p-4 font-medium text-slate-600">
-                            <span class="text-xs font-bold text-slate-400 uppercase block">${item.affiliationType || 'Club'}</span>
-                            ${item.affiliationName || 'General Listing'}
-                        </td>
-                        <td class="p-4 font-mono text-xs font-semibold text-slate-600">
-                            ${item.displayDate || 'Immediate'}
-                        </td>
-                        <td class="p-4 max-w-xs break-words text-slate-600 leading-relaxed text-xs">
-                            ${item.message || 'No string payload recorded.'}
-                        </td>
-                        <td class="p-4 text-center">
-                            <div class="flex items-center justify-center gap-2">
-                                <button data-id="${item.id}" data-action="approved" class="action-btn bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-2.5 py-1.5 rounded transition shadow-sm">
-                                    Approve
-                                </button>
-                                <button data-id="${item.id}" data-action="rejected" class="action-btn bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs px-2.5 py-1.5 rounded transition shadow-sm">
-                                    Reject
-                                </button>
-                                <div class="ml-2">${statusPill}</div>
-                            </div>
-                        </td>
-                    `;
-                    tableBody.appendChild(tableRow);
+                allSubmissionsCached = [];
+                
+                querySnapshot.forEach((docSnap) => {
+                    allSubmissionsCached.push(docSnap.data());
                 });
 
-                counter.innerText = `${count} Request(s) Evaluated`;
-                attachButtonListeners();
+                // Sort submissions chronologically by their ID timestamps (newest entries first)
+                allSubmissionsCached.sort((a, b) => b.id.localeCompare(a.id));
 
+                renderTableViews();
             } catch (err) {
                 tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500 font-bold">Error loading database index paths: ${err.message}</td></tr>`;
             }
+        }
+
+        function renderTableViews() {
+            const tableBody = document.getElementById('adminQueueTableBody');
+            const pCountLabel = document.getElementById('pendingCounter');
+            const hCountLabel = document.getElementById('historyCounter');
+            const actionHeader = document.getElementById('actionColumnHeader');
+            
+            tableBody.innerHTML = "";
+
+            // Calculate live status lengths across storage array tracking blocks
+            const pendingList = allSubmissionsCached.filter(item => !item.status || item.status === 'pending');
+            const historyList = allSubmissionsCached.filter(item => item.status === 'approved' || item.status === 'rejected');
+
+            pCountLabel.innerText = pendingList.length;
+            hCountLabel.innerText = historyList.length;
+
+            const targetDisplayList = currentTab === 'pending' ? pendingList : historyList;
+
+            if (currentTab === 'pending') {
+                actionHeader.innerText = "Status Control Actions";
+            } else {
+                actionHeader.innerText = "Log Audit Status";
+            }
+
+            if (targetDisplayList.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-400 font-medium">
+                            No submissions found matching this view category.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            targetDisplayList.forEach((item) => {
+                let statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800">Pending</span>`;
+                if (item.status === 'approved') statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">Approved</span>`;
+                if (item.status === 'rejected') statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-100 text-rose-800">Rejected</span>`;
+
+                // Render functional modifier control buttons if on Pending tab, hide them if reading past history
+                let actionColumnContent = "";
+                if (currentTab === 'pending') {
+                    actionColumnContent = `
+                        <div class="flex items-center justify-center gap-2">
+                            <button data-id="${item.id}" data-action="approved" class="action-btn bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-2.5 py-1.5 rounded transition shadow-sm">
+                                Approve
+                            </button>
+                            <button data-id="${item.id}" data-action="rejected" class="action-btn bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs px-2.5 py-1.5 rounded transition shadow-sm">
+                                Reject
+                            </button>
+                        </div>`;
+                } else {
+                    actionColumnContent = `<div class="flex items-center justify-center">${statusPill}</div>`;
+                }
+
+                const tableRow = document.createElement('tr');
+                tableRow.className = "hover:bg-slate-50/70 transition";
+                tableRow.innerHTML = `
+                    <td class="p-4">
+                        <div class="font-semibold text-slate-800">${item.fullName || 'Unknown'}</div>
+                        <div class="text-xs text-slate-400 font-mono mt-0.5">ID: ${item.universityId || '---'}</div>
+                        <div class="text-xs text-blue-600 underline">${item.preferredEmail || '---'}</div>
+                    </td>
+                    <td class="p-4 font-medium text-slate-600">
+                        <span class="text-xs font-bold text-slate-400 uppercase block">${item.affiliationType || 'Club'}</span>
+                        ${item.affiliationName || 'General Listing'}
+                    </td>
+                    <td class="p-4 font-mono text-xs font-semibold text-slate-600">
+                        ${item.displayDate || 'Immediate'}
+                    </td>
+                    <td class="p-4 max-w-xs break-words text-slate-600 leading-relaxed text-xs">
+                        ${item.message || 'No string payload recorded.'}
+                    </td>
+                    <td class="p-4 text-center">
+                        ${actionColumnContent}
+                    </td>
+                `;
+                tableBody.appendChild(tableRow);
+            });
+
+            if (currentTab === 'pending') attachButtonListeners();
         }
 
         function attachButtonListeners() {
@@ -142,8 +187,8 @@
                     try {
                         const reference = doc(db, "bulletinSubmissions", id);
                         await updateDoc(reference, { status: targetState });
-                        alert(`Request node set to [${targetState.toUpperCase()}] successfully.`);
-                        fetchSubmissions(); 
+                        alert(`Request node updated to [${targetState.toUpperCase()}] successfully.`);
+                        loadDatabaseData(); // Fetch absolute latest state mutations
                     } catch (err) {
                         alert("State migration failed layout bounds: " + err.message);
                     }
@@ -151,7 +196,27 @@
             });
         }
 
-        fetchSubmissions();
+        // Expose tab switcher to global document scope safely
+        window.switchTab = function(targetTabName) {
+            currentTab = targetTabName;
+            const pBtn = document.getElementById('tabPendingBtn');
+            const hBtn = document.getElementById('tabHistoryBtn');
+            const displayTitle = document.getElementById('queueCounter');
+
+            if (currentTab === 'pending') {
+                pBtn.className = "border-b-2 border-blue-600 text-blue-600 font-bold text-sm pb-2 px-2 transition focus:outline-none";
+                hBtn.className = "border-b-2 border-transparent text-slate-400 hover:text-slate-600 font-semibold text-sm pb-2 px-2 transition focus:outline-none";
+                displayTitle.innerText = "Viewing: Pending Queue";
+            } else {
+                pBtn.className = "border-b-2 border-transparent text-slate-400 hover:text-slate-600 font-semibold text-sm pb-2 px-2 transition focus:outline-none";
+                hBtn.className = "border-b-2 border-blue-600 text-blue-600 font-bold text-sm pb-2 px-2 transition focus:outline-none";
+                displayTitle.innerText = "Viewing: Completed Logs Audit";
+            }
+            renderTableViews();
+        };
+
+        // Initialize queue scanning pipelines
+        loadDatabaseData();
     </script>
     <script>
         function logOut() { sessionStorage.clear(); window.location.href = 'index.html'; }
