@@ -1,47 +1,116 @@
-import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | Campus Bulletin Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="./firebase.js"></script>
+</head>
+<body class="bg-slate-900 font-sans min-h-screen flex items-center justify-center p-4">
 
-document.getElementById('registrationForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    const db = window.db;
-    if (!db) {
-        alert("Database connection initializing. Please try again.");
-        return;
-    }
-
-    const usernameInput = document.getElementById('username').value.trim().toLowerCase();
-    const passwordInput = document.getElementById('password').value;
-    const fullNameInput = document.getElementById('fullName').value.trim();
-    const universityIdInput = document.getElementById('universityId').value.trim();
-    const emailInput = document.getElementById('email').value.trim();
-
-    try {
-        // 1. Check if the chosen username document already exists in your 'users' collection
-        const userRef = doc(db, "users", usernameInput);
-        const userSnap = await getDoc(userRef);
-
-        if (userSnap.exists()) {
-            // 2. Block the signup pipeline immediately if a match is found
-            alert(`Registration Error: The username "${usernameInput}" is already taken. Please choose another one.`);
-            return; // Stops the function execution dead in its tracks
-        }
-
-        // 3. Securely build the payload since the name is unique
-        const userPayload = {
-            password: passwordInput,
-            role: 'student',
-            fullName: fullNameInput,
-            universityId: universityIdInput,
-            preferredEmail: emailInput
-        };
-
-        // 4. Save into Firestore database instance
-        await setDoc(userRef, userPayload);
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 space-y-6">
         
-        alert('Account successfully registered! You can now log in.');
-        window.location.href = 'index.html';
+        <div class="text-center">
+            <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Create Account</h2>
+            <p class="text-sm text-slate-500 mt-2">Register to route announcements onto the live display</p>
+        </div>
 
-    } catch (err) {
-        alert("Registration pipeline error: " + err.message);
-    }
-});
+        <form id="registrationForm" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Username</label>
+                <input type="text" id="username" required placeholder="Choose a unique username" 
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm text-slate-800 bg-slate-50">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Password</label>
+                <input type="password" id="password" required placeholder="Create a strong password" 
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm text-slate-800 bg-slate-50">
+            </div>
+
+            <hr class="border-slate-100 my-2">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Full Name</label>
+                <input type="text" id="fullName" required placeholder="e.g. Mok Cheuk Hin" 
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm text-slate-800 bg-slate-50">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">University ID Reference</label>
+                    <input type="text" id="universityId" required placeholder="10-digit ID" maxlength="10" pattern="[0-9]*" title="Must be exactly 10 digits."
+                        class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm text-slate-800 bg-slate-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Preferred Email Address</label>
+                    <input type="email" id="email" required placeholder="name@example.com" 
+                        class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm text-slate-800 bg-slate-50">
+                </div>
+            </div>
+
+            <button type="submit" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition text-sm shadow-md">
+                Complete Registration
+            </button>
+        </form>
+
+        <div class="border-t border-slate-100 pt-4 text-center">
+            <p class="text-xs text-slate-500">
+                Already have a database account profile? 
+                <a href="index.html" class="text-blue-600 font-bold hover:underline">Sign In here</a>
+            </p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+        document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const db = window.db;
+            if (!db) {
+                alert("Database connection initializing. Please try again in a few seconds.");
+                return;
+            }
+
+            const usernameInput = document.getElementById('username').value.trim().toLowerCase();
+            const passwordInput = document.getElementById('password').value;
+            const fullNameInput = document.getElementById('fullName').value.trim();
+            const universityIdInput = document.getElementById('universityId').value.trim();
+            const emailInput = document.getElementById('email').value.trim();
+
+            try {
+                // 1. Scan user collection maps to verify if requested username document is vacant
+                const userRef = doc(db, "users", usernameInput);
+                const userSnap = await getDoc(userRef);
+
+                if (userSnap.exists()) {
+                    // 2. Terminate registration process safely to avoid overwriting current user records
+                    alert(`Registration Error: The username "${usernameInput}" is already taken. Please select a different one.`);
+                    return;
+                }
+
+                // 3. Assemble dynamic secure user payload parameters
+                const userPayload = {
+                    password: passwordInput,
+                    role: 'student',
+                    fullName: fullNameInput,
+                    universityId: universityIdInput,
+                    preferredEmail: emailInput
+                };
+
+                // 4. Save record block document into cloud firestore instance safely
+                await setDoc(userRef, userPayload);
+                
+                alert('Account successfully registered! Proceeding to authentication portal.');
+                window.location.href = 'index.html';
+
+            } catch (err) {
+                alert("Registration pipeline error: " + err.message);
+            }
+        });
+    </script>
+</body>
+</html>
