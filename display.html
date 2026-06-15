@@ -6,32 +6,69 @@
     <title>Live Display | Campus Bulletin Board</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="./firebase.js"></script>
+    <style>
+        /* Carousel horizontal slide animations */
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            overflow: hidden;
+        }
+        .carousel-card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease-in-out;
+            pointer-events: none;
+        }
+        .carousel-card.active {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+        }
+        .carousel-card.exit {
+            opacity: 0;
+            transform: translateX(-100%);
+            pointer-events: none;
+        }
+    </style>
 </head>
-<body class="bg-slate-950 font-sans min-h-screen text-slate-100 p-8">
+<body class="bg-slate-950 font-sans min-h-screen text-slate-100 p-8 flex flex-col justify-between">
 
-    <header class="max-w-7xl mx-auto flex justify-between items-center border-b border-slate-800 pb-6 mb-8">
+    <header class="w-full max-w-4xl mx-auto flex justify-between items-center border-b border-slate-800 pb-6 mb-4">
         <div>
-            <h1 class="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+            <h1 class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-3">
                 <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
                 Campus Live Information Board
             </h1>
-            <p class="text-sm text-slate-400 mt-1">Real-time approved student activity feeds</p>
+            <p class="text-xs text-slate-400 mt-1">Real-time approved student activity feeds</p>
         </div>
         <a href="index.html" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold px-4 py-2 rounded-xl transition text-slate-300">
             ← Access Portal
         </a>
     </header>
 
-    <main class="max-w-7xl mx-auto">
-        <div id="displayBoardGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="col-span-full p-12 text-center text-slate-500 font-medium bg-slate-900/40 rounded-2xl border border-slate-900 border-dashed animate-pulse">
+    <main class="w-full max-w-4xl mx-auto flex-grow flex items-center justify-center">
+        <div id="displayBoardGrid" class="carousel-container">
+            <div class="w-full h-full flex items-center justify-center text-slate-500 font-medium bg-slate-900/40 rounded-2xl border border-slate-900 border-dashed animate-pulse">
                 Synchronizing live grid interface matrix channels...
             </div>
         </div>
     </main>
 
+    <footer class="w-full max-w-4xl mx-auto pt-6 flex justify-center gap-2" id="carouselIndicators">
+        </footer>
+
     <script type="module">
         import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+        let noticesData = [];
+        let activeCardIndex = 0;
+        let rotationTimer = null;
 
         async function loadPublicBoard() {
             const db = window.db;
@@ -44,59 +81,140 @@
 
             try {
                 const querySnapshot = await getDocs(collection(db, "bulletinSubmissions"));
-                grid.innerHTML = "";
-                let dynamicCardCount = 0;
+                noticesData = [];
 
                 querySnapshot.forEach((docInstance) => {
                     const notice = docInstance.data();
-
-                    // Strict validation filtering to block unapproved or pending requests
                     if (notice.status === 'approved') {
-                        dynamicCardCount++;
-                        
-                        const badgeColor = notice.affiliationType === 'Faculty' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-
-                        const cardElement = document.createElement('div');
-                        cardElement.className = "bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl hover:border-slate-700 transition duration-300 transform hover:-translate-y-1";
-                        cardElement.innerHTML = `
-                            <div class="space-y-4">
-                                <div class="flex items-start justify-between gap-2">
-                                    <span class="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-md border ${badgeColor}">
-                                        ${notice.affiliationType || 'Club'}
-                                    </span>
-                                    <span class="text-[11px] font-mono font-medium text-slate-500 bg-slate-950 px-2 py-0.5 rounded-md">
-                                        Date: ${notice.displayDate || '---'}
-                                    </span>
-                                </div>
-                                <div>
-                                    <h3 class="text-base font-bold text-white tracking-tight">${notice.affiliationName || 'General Announcement'}</h3>
-                                    <p class="text-xs text-slate-400 mt-1 font-medium">Posted by: ${notice.fullName || 'Anonymous'}</p>
-                                </div>
-                                <div class="text-sm text-slate-300 leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-slate-850 whitespace-pre-wrap break-words min-h-[80px]">
-                                    ${notice.message || 'No announcement details specified.'}
-                                </div>
-                            </div>
-                            <div class="mt-4 pt-3 border-t border-slate-850 flex justify-between text-[10px] font-mono text-slate-500">
-                                <span>Ref: #${notice.id ? notice.id.slice(-6) : '000000'}</span>
-                                <span class="text-emerald-500 font-bold uppercase tracking-wider flex items-center gap-1">
-                                    <span class="w-1 h-1 rounded-full bg-emerald-500"></span> Verified Notice
-                                </span>
-                            </div>
-                        `;
-                        grid.appendChild(cardElement);
+                        noticesData.push(notice);
                     }
                 });
 
-                if (dynamicCardCount === 0) {
+                // Sort newest submissions first
+                noticesData.sort((a, b) => b.id.localeCompare(a.id));
+
+                if (noticesData.length === 0) {
                     grid.innerHTML = `
-                        <div class="col-span-full p-16 text-center text-slate-500 font-medium bg-slate-900/30 rounded-2xl border border-slate-900 border-dashed">
+                        <div class="w-full h-full flex items-center justify-center text-center text-slate-500 font-medium bg-slate-900/30 rounded-2xl border border-slate-900 border-dashed p-8">
                             No approved announcements are currently set for display.
                         </div>`;
+                    document.getElementById('carouselIndicators').innerHTML = "";
+                    return;
                 }
 
+                buildCarouselMarkup();
+                startCarouselRotation();
+
             } catch (err) {
-                grid.innerHTML = `<div class="col-span-full p-4 text-center text-red-400 font-mono font-semibold bg-red-950/20 border border-red-900/50 rounded-xl">Terminal Linkage Loss: ${err.message}</div>`;
+                grid.innerHTML = `<div class="w-full p-4 text-center text-red-400 font-mono font-semibold bg-red-950/20 border border-red-900/50 rounded-xl">Terminal Linkage Loss: ${err.message}</div>`;
             }
+        }
+
+        function buildCarouselMarkup() {
+            const grid = document.getElementById('displayBoardGrid');
+            const indicatorsContainer = document.getElementById('carouselIndicators');
+            
+            grid.innerHTML = "";
+            indicatorsContainer.innerHTML = "";
+
+            noticesData.forEach((notice, idx) => {
+                const badgeColor = notice.affiliationType === 'Faculty' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+
+                // Notice Card: Added flex container properties to perfectly center text content horizontally & vertically
+                const cardElement = document.createElement('div');
+                cardElement.id = `card-${idx}`;
+                cardElement.className = `carousel-card bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between shadow-2xl`;
+                cardElement.innerHTML = `
+                    <div class="flex flex-col h-full justify-between space-y-6">
+                        <div class="flex items-start justify-between gap-2">
+                            <span class="px-3 py-1 text-[11px] font-bold uppercase rounded-md border ${badgeColor}">
+                                ${notice.affiliationType || 'Club'}
+                            </span>
+                            <span class="text-[11px] font-mono font-medium text-slate-500 bg-slate-950 px-2.5 py-1 rounded-md">
+                                Date: ${notice.displayDate || '---'}
+                            </span>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-xl font-bold text-white text-center tracking-tight">${notice.affiliationName || 'General Announcement'}</h3>
+                            <p class="text-xs text-slate-400 text-center mt-1 font-medium">Posted by: ${notice.fullName || 'Anonymous'}</p>
+                        </div>
+
+                        <div class="text-base text-slate-200 bg-slate-950/60 p-6 rounded-xl border border-slate-850 whitespace-pre-wrap break-words min-h-[140px] flex items-center justify-center text-center leading-relaxed font-medium">
+                            ${notice.message || 'No announcement details specified.'}
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-850 flex justify-between text-[11px] font-mono text-slate-500">
+                            <span>Ref: #${notice.id ? notice.id.slice(-6) : '000000'}</span>
+                            <span class="text-emerald-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verified Notice
+                            </span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(cardElement);
+
+                // Add pagination tracking dot pips below the viewport
+                const indicatorDot = document.createElement('button');
+                indicatorDot.id = `dot-${idx}`;
+                indicatorDot.className = `w-2.5 h-2.5 rounded-full bg-slate-800 transition-all duration-300 focus:outline-none`;
+                indicatorDot.onclick = () => jumpToCard(idx);
+                indicatorsContainer.appendChild(indicatorDot);
+            });
+
+            activeCardIndex = 0;
+            updateDOMState(null, activeCardIndex);
+        }
+
+        function updateDOMState(oldIdx, newIdx) {
+            if (oldIdx !== null) {
+                const oldCard = document.getElementById(`card-${oldIdx}`);
+                const oldDot = document.getElementById(`dot-${oldIdx}`);
+                if (oldCard) {
+                    oldCard.className = "carousel-card bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between shadow-2xl exit";
+                }
+                if (oldDot) oldDot.className = "w-2.5 h-2.5 rounded-full bg-slate-800 transition-all duration-300 focus:outline-none";
+            }
+
+            const newCard = document.getElementById(`card-${newIdx}`);
+            const newDot = document.getElementById(`dot-${newIdx}`);
+            if (newCard) {
+                // Ensure moving forward doesn't cause conflicting styles
+                setTimeout(() => {
+                    // Clean past exit structures from other non-active elements
+                    noticesData.forEach((_, i) => {
+                        if (i !== newIdx && i !== oldIdx) {
+                            const clearCard = document.getElementById(`card-${i}`);
+                            if (clearCard) clearCard.className = "carousel-card bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between shadow-2xl";
+                        }
+                    });
+                }, 750);
+
+                newCard.className = "carousel-card bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between shadow-2xl active";
+            }
+            if (newDot) newDot.className = "w-6 h-2.5 rounded-full bg-blue-500 transition-all duration-300 focus:outline-none";
+        }
+
+        function rotateNextCard() {
+            if (noticesData.length <= 1) return;
+            const oldIdx = activeCardIndex;
+            activeCardIndex = (activeCardIndex + 1) % noticesData.length;
+            updateDOMState(oldIdx, activeCardIndex);
+        }
+
+        function startCarouselRotation() {
+            if (rotationTimer) clearInterval(rotationTimer);
+            if (noticesData.length > 1) {
+                rotationTimer = setInterval(rotateNextCard, 5000); // Transitions to next item from right to left every 5 seconds
+            }
+        }
+
+        function jumpToCard(targetIdx) {
+            if (targetIdx === activeCardIndex) return;
+            const oldIdx = activeCardIndex;
+            activeCardIndex = targetIdx;
+            updateDOMState(oldIdx, activeCardIndex);
+            startCarouselRotation(); // Reset intervals to prevent instant double-skips
         }
 
         loadPublicBoard();
