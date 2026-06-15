@@ -103,6 +103,12 @@
         document.getElementById('submissionForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            const db = window.db;
+            if (!db) {
+                setTimeout(() => { document.getElementById('submissionForm').requestSubmit(); }, 300);
+                return;
+            }
+
             let finalName = activeUserData.fullName;
             let finalUid = activeUserData.universityId;
             let finalEmail = activeUserData.preferredEmail;
@@ -128,7 +134,7 @@
             };
 
             try {
-                await setDoc(doc(window.db, "submissions", submissionId), payload);
+                await setDoc(doc(db, "submissions", submissionId), payload);
                 alert('Notice request successfully saved onto cloud database queue!');
                 this.reset();
                 if (currentRole === 'guest') {

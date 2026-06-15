@@ -64,6 +64,13 @@
 
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            const db = window.db;
+            if (!db) {
+                setTimeout(() => { document.getElementById('registerForm').requestSubmit(); }, 300);
+                return;
+            }
+
             const username = document.getElementById('regUsername').value.trim().toLowerCase();
             const password = document.getElementById('regPassword').value;
             const fullName = document.getElementById('regFullName').value.trim();
@@ -80,7 +87,7 @@
             }
 
             try {
-                const userDocRef = doc(window.db, "users", username);
+                const userDocRef = doc(db, "users", username);
                 const userDocSnap = await getDoc(userDocRef);
 
                 if (userDocSnap.exists()) {

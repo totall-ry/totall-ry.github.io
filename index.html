@@ -57,6 +57,13 @@
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            const db = window.db;
+            if (!db) {
+                setTimeout(() => { document.getElementById('loginForm').requestSubmit(); }, 300);
+                return;
+            }
+
             const user = document.getElementById('username').value.trim().toLowerCase();
             const pass = document.getElementById('password').value;
             const errorMsg = document.getElementById('errorMessage');
@@ -69,7 +76,7 @@
             }
 
             try {
-                const userDocRef = doc(window.db, "users", user);
+                const userDocRef = doc(db, "users", user);
                 const userDocSnap = await getDoc(userDocRef);
 
                 if (userDocSnap.exists()) {
