@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Campus Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="firebase.js"></script>
 </head>
 <body class="bg-slate-900 font-sans min-h-screen flex items-center justify-center p-4">
 
@@ -17,7 +18,7 @@
         <form id="loginForm" class="space-y-4">
             <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Username</label>
-                <input type="text" id="username" required placeholder="Your username " 
+                <input type="text" id="username" required placeholder="Your registered username " 
                     class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
             </div>
             <div>
@@ -33,6 +34,10 @@
             <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition text-sm">
                 Sign In
             </button>
+            
+            <button type="button" id="guestBtn" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded-lg transition text-sm">
+                Sign In as Guest
+            </button>
         </form>
 
         <div class="border-t border-slate-100 pt-4 flex flex-col gap-2 text-center text-xs">
@@ -45,38 +50,53 @@
         </div>
     </div>
 
-    <script>
-        // Bootstrap systemic infrastructure tables if missing from client
-        if (!localStorage.getItem('bulletinUsers')) localStorage.setItem('bulletinUsers', JSON.stringify([]));
-        if (!localStorage.getItem('bulletinSubmissions')) localStorage.setItem('bulletinSubmissions', JSON.stringify([]));
+    <script type="module">
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const user = document.getElementById('username').value.trim().toLowerCase();
             const pass = document.getElementById('password').value;
             const errorMsg = document.getElementById('errorMessage');
-
             errorMsg.classList.add('hidden');
 
-            // 1. Check Admin Credentials Override
             if (user === 'admin' && pass === 'admin') {
                 sessionStorage.setItem('bulletinSessionRole', 'admin');
                 window.location.href = 'admin.html';
                 return;
             }
 
-            // 2. Scan Client Database for Student Match
-            const users = JSON.parse(localStorage.getItem('bulletinUsers'));
-            const matchingUser = users.find(u => u.username === user);
+            try {
+                // Fetch the user data document from Firestore safely
+                const userDocRef = doc(window.db, "users", user);
+                const userDocSnap = await getDoc(userDocRef);
 
-            if (matchingUser && matchingUser.password === pass) {
-                // Initialize state validation parameters securely across execution tabs
-                sessionStorage.setItem('bulletinSessionRole', 'student');
-                sessionStorage.setItem('bulletinActiveStudent', JSON.stringify(matchingUser));
-                window.location.href = 'submit.html';
-            } else {
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    
+                    if (userData.password === pass) {
+                        sessionStorage.setItem('bulletinSessionRole', 'student');
+                        sessionStorage.setItem('bulletinActiveStudent', JSON.stringify(userData));
+                        window.location.href = 'submit.html';
+                        return;
+                    }
+                }
                 errorMsg.classList.remove('hidden');
+            } catch (err) {
+                alert("Database connection drop: " + err.message);
             }
+        });
+
+        // Guest session parameters allocation
+        document.getElementById('guestBtn').addEventListener('click', function() {
+            sessionStorage.setItem('bulletinSessionRole', 'guest');
+            sessionStorage.setItem('bulletinActiveStudent', JSON.stringify({
+                username: "guest_user",
+                fullName: "Guest Applicant",
+                universityId: "0000000000",
+                preferredEmail: "guest@university.edu"
+            }));
+            window.location.href = 'submit.html';
         });
     </script>
 </body>

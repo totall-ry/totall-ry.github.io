@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register | Campus Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="firebase.js"></script>
 </head>
 <body class="bg-slate-900 font-sans min-h-screen flex items-center justify-center p-4">
 
@@ -54,8 +55,10 @@
         </div>
     </div>
 
-    <script>
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
+    <script type="module">
+        import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const username = document.getElementById('regUsername').value.trim().toLowerCase();
             const password = document.getElementById('regPassword').value;
@@ -72,21 +75,25 @@
                 return;
             }
 
-            const currentUsers = JSON.parse(localStorage.getItem('bulletinUsers')) || [];
-            
-            // Validate account uniqueness
-            if(currentUsers.some(user => user.username === username)) {
-                errorBox.innerText = "Username already taken. Choose another.";
+            try {
+                const userDocRef = doc(window.db, "users", username);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists()) {
+                    errorBox.innerText = "Username already taken. Choose another.";
+                    errorBox.classList.remove('hidden');
+                    return;
+                }
+
+                // Push clean schema map structure directly to Firestore database rules
+                await setDoc(userDocRef, { username, password, fullName, universityId, preferredEmail });
+
+                alert('Account successfully created on cloud database! Moving to gateway login.');
+                window.location.href = 'index.html';
+            } catch (err) {
+                errorBox.innerText = "Error: " + err.message;
                 errorBox.classList.remove('hidden');
-                return;
             }
-
-            // Record newly engineered data map profile package
-            currentUsers.push({ username, password, fullName, universityId, preferredEmail });
-            localStorage.setItem('bulletinUsers', JSON.stringify(currentUsers));
-
-            alert('Account successfully created! Proceeding back to gateway login.');
-            window.location.href = 'index.html';
         });
     </script>
 </body>
