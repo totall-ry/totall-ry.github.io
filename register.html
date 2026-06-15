@@ -65,12 +65,10 @@
         const registerForm = document.getElementById('registerForm');
         const submitBtn = registerForm.querySelector('button[type="submit"]');
 
-        // Prevent clicking before Firebase downloads completely over the network
         submitBtn.disabled = true;
         submitBtn.classList.add('opacity-60', 'cursor-not-allowed');
         submitBtn.innerText = "Connecting to Cloud...";
 
-        // Periodically verify when firebase.js has successfully bound the database 
         const checkDb = setInterval(() => {
             if (window.db) {
                 clearInterval(checkDb);
@@ -99,7 +97,6 @@
             }
 
             try {
-                // Read from the globally verified reference link
                 const userDocRef = doc(window.db, "users", username);
                 const userDocSnap = await getDoc(userDocRef);
 
@@ -109,7 +106,6 @@
                     return;
                 }
 
-                // Write the profile map directly to Firestore database root
                 await setDoc(userDocRef, { username, password, fullName, universityId, preferredEmail });
 
                 alert('Account successfully created on cloud database! Moving to gateway login.');

@@ -50,7 +50,6 @@
     <script type="module">
         import { collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        // Route gatekeeper access validation configurations
         if (sessionStorage.getItem('bulletinSessionRole') !== 'admin') {
             alert('Admin structural validation signature missing. Redirection active.');
             window.location.href = 'index.html';
@@ -61,14 +60,12 @@
             const tableBody = document.getElementById('adminQueueTableBody');
             const counter = document.getElementById('queueCounter');
 
-            // Asynchronous loader catch framework matching core elements
             if (!db) {
                 setTimeout(fetchSubmissions, 250);
                 return;
             }
 
             try {
-                // Unified Firestore structural pathway query instance target
                 const querySnapshot = await getDocs(collection(db, "bulletinSubmissions"));
                 tableBody.innerHTML = "";
                 let count = 0;
@@ -88,7 +85,6 @@
                     const item = documentInstance.data();
                     count++;
 
-                    // Color coordinate standard state layout tokens
                     let statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800">Pending</span>`;
                     if (item.status === 'approved') statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">Approved</span>`;
                     if (item.status === 'rejected') statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-100 text-rose-800">Rejected</span>`;
@@ -147,7 +143,7 @@
                         const reference = doc(db, "bulletinSubmissions", id);
                         await updateDoc(reference, { status: targetState });
                         alert(`Request node set to [${targetState.toUpperCase()}] successfully.`);
-                        fetchSubmissions(); // Instantly rebuild table metrics
+                        fetchSubmissions(); 
                     } catch (err) {
                         alert("State migration failed layout bounds: " + err.message);
                     }
@@ -155,7 +151,6 @@
             });
         }
 
-        // Initialize queue scanning pipelines
         fetchSubmissions();
     </script>
     <script>

@@ -3,184 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Campus Display Board</title>
+    <title>Live Display | Campus Bulletin Board</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Smooth transitions for slide transitions */
-        .slide-container {
-            position: relative;
-            overflow: hidden;
-            width: 100%;
-            height: 380px; /* Locked viewport container depth constraints */
-        }
-        .billboard-slide {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transform: translateX(100%);
-            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease-in-out;
-            pointer-events: none;
-        }
-        /* Active View state: Slides into view from the right */
-        .billboard-slide.active {
-            opacity: 1;
-            transform: translateX(0);
-            pointer-events: auto;
-        }
-        /* Exit state: Slides away out towards the left side window margin */
-        .billboard-slide.exit {
-            opacity: 0;
-            transform: translateX(-100%);
-        }
-    </style>
+    <script type="module" src="./firebase.js"></script>
 </head>
-<body class="bg-slate-950 font-sans text-slate-100 min-h-screen flex flex-col justify-between overflow-hidden">
+<body class="bg-slate-950 font-sans min-h-screen text-slate-100 p-8">
 
-    <header class="bg-slate-900 border-b border-slate-800 px-8 py-6 flex justify-between items-center shadow-md z-10">
+    <header class="max-w-7xl mx-auto flex justify-between items-center border-b border-slate-800 pb-6 mb-8">
         <div>
-            <h1 class="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 uppercase">Campus Live Bulletin</h1>
-            <p class="text-xs text-slate-400 mt-1">Authorized Announcements Panel</p>
+            <h1 class="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+                <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                Campus Live Information Board
+            </h1>
+            <p class="text-sm text-slate-400 mt-1">Real-time approved student activity feeds</p>
         </div>
-        <div class="flex items-center space-x-6">
-            <a href="index.html" class="text-xs text-slate-400 hover:text-white underline">Portal Gate</a>
-            <div class="flex items-center space-x-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                <span class="text-xs font-mono font-bold tracking-widest uppercase text-slate-400">Live Feed</span>
-            </div>
-        </div>
+        <a href="index.html" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold px-4 py-2 rounded-xl transition text-slate-300">
+            ← Access Portal
+        </a>
     </header>
 
-    <main class="flex-grow flex items-center justify-center px-4 md:px-12 lg:px-24 max-w-5xl mx-auto w-full">
-        <div id="carouselTrack" class="slide-container">
+    <main class="max-w-7xl mx-auto">
+        <div id="displayBoardGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="col-span-full p-12 text-center text-slate-500 font-medium bg-slate-900/40 rounded-2xl border border-slate-900 border-dashed animate-pulse">
+                Synchronizing live grid interface matrix channels...
             </div>
+        </div>
     </main>
 
-    <footer class="bg-slate-900/50 border-t border-slate-900 px-8 py-4 text-center text-xs text-slate-600 flex justify-between items-center z-10">
-        <span>To submit announcements onto this monitor screen, access the digital intake portal gateway.</span>
-        <span id="slideCounter" class="font-mono bg-slate-950 border border-slate-800 text-slate-400 px-3 py-1 rounded-full text-[11px] font-bold">Item 0 of 0</span>
-    </footer>
+    <script type="module">
+        import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-    <script>
-        let currentIndex = 0;
-        let slideInterval = null;
-        const animationSpeedDuration = 5000; // Time each announcement stays on screen (5 seconds)
+        async function loadPublicBoard() {
+            const db = window.db;
+            const grid = document.getElementById('displayBoardGrid');
 
-        function buildBillboardCarousel() {
-            const track = document.getElementById('carouselTrack');
-            const counter = document.getElementById('slideCounter');
-            const submissions = JSON.parse(localStorage.getItem('bulletinSubmissions')) || [];
-            
-            // Extract explicitly approved items
-            const activeNotices = submissions.filter(item => item.status === 'approved');
-
-            // Handle empty slate architecture scenarios elegantly
-            if(activeNotices.length === 0) {
-                track.innerHTML = `
-                    <div class="w-full h-full flex flex-col items-center justify-center text-center">
-                        <p class="text-slate-400 text-xl font-semibold tracking-wide">No Broadcast Messages Active</p>
-                        <p class="text-slate-600 text-sm mt-1">Approved announcements will automatically stream onto this board live.</p>
-                    </div>
-                `;
-                counter.innerText = "Item 0 of 0";
-                if(slideInterval) clearInterval(slideInterval);
+            if (!db) {
+                setTimeout(loadPublicBoard, 250);
                 return;
             }
 
-            track.innerHTML = '';
+            try {
+                const querySnapshot = await getDocs(collection(db, "bulletinSubmissions"));
+                grid.innerHTML = "";
+                let dynamicCardCount = 0;
 
-            // Generate clean isolated slide nodes
-            activeNotices.forEach((item, index) => {
-                const slide = document.createElement('div');
-                
-                const isClub = item.affiliationType === 'Club';
-                const borderTheme = isClub ? 'border-blue-500/40 shadow-blue-950/40' : 'border-emerald-500/40 shadow-emerald-950/40';
-                const badgeTheme = isClub ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+                querySnapshot.forEach((docInstance) => {
+                    const notice = docInstance.data();
 
-                slide.className = `billboard-slide flex flex-col justify-between bg-slate-900 border-2 rounded-2xl p-8 md:p-12 shadow-2xl ${borderTheme}`;
-                slide.innerHTML = `
-                    <div>
-                        <div class="flex justify-between items-start mb-6">
-                            <span class="text-sm font-extrabold uppercase tracking-widest px-3.5 py-1.5 rounded-lg border ${badgeTheme}">
-                                ${item.affiliationName}
-                            </span>
-                            <span class="text-xs font-mono text-slate-500 uppercase font-semibold tracking-wider">Date: ${item.displayDate}</span>
-                        </div>
-                        <p class="text-2xl md:text-3xl text-slate-100 font-medium leading-relaxed tracking-wide break-words">
-                            "${item.message}"
-                        </p>
-                    </div>
-                    <div class="border-t border-slate-800/80 mt-8 pt-6 text-xs md:text-sm text-slate-500 flex justify-between items-center font-medium tracking-wide">
-                        <span>Issuer signature: ${item.fullName}</span>
-                        <span class="font-mono bg-slate-950/60 border border-slate-800 px-3 py-1 rounded-md text-slate-400 text-xs">ID: ****${item.universityId.slice(-4)}</span>
-                    </div>
-                `;
-                track.appendChild(slide);
-            });
+                    // Strict validation filtering to block unapproved or pending requests
+                    if (notice.status === 'approved') {
+                        dynamicCardCount++;
+                        
+                        const badgeColor = notice.affiliationType === 'Faculty' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20';
 
-            // Reset indexing loop tracking matrices safely
-            currentIndex = 0;
-            startCarouselLogic(activeNotices.length);
-        }
+                        const cardElement = document.createElement('div');
+                        cardElement.className = "bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl hover:border-slate-700 transition duration-300 transform hover:-translate-y-1";
+                        cardElement.innerHTML = `
+                            <div class="space-y-4">
+                                <div class="flex items-start justify-between gap-2">
+                                    <span class="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-md border ${badgeColor}">
+                                        ${notice.affiliationType || 'Club'}
+                                    </span>
+                                    <span class="text-[11px] font-mono font-medium text-slate-500 bg-slate-950 px-2 py-0.5 rounded-md">
+                                        Date: ${notice.displayDate || '---'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-white tracking-tight">${notice.affiliationName || 'General Announcement'}</h3>
+                                    <p class="text-xs text-slate-400 mt-1 font-medium">Posted by: ${notice.fullName || 'Anonymous'}</p>
+                                </div>
+                                <div class="text-sm text-slate-300 leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-slate-850 whitespace-pre-wrap break-words min-h-[80px]">
+                                    ${notice.message || 'No announcement details specified.'}
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-slate-850 flex justify-between text-[10px] font-mono text-slate-500">
+                                <span>Ref: #${notice.id ? notice.id.slice(-6) : '000000'}</span>
+                                <span class="text-emerald-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                                    <span class="w-1 h-1 rounded-full bg-emerald-500"></span> Verified Notice
+                                </span>
+                            </div>
+                        `;
+                        grid.appendChild(cardElement);
+                    }
+                });
 
-        function startCarouselLogic(totalSlides) {
-            const slides = document.querySelectorAll('.billboard-slide');
-            const counter = document.getElementById('slideCounter');
-            
-            if(slides.length === 0) return;
+                if (dynamicCardCount === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-full p-16 text-center text-slate-500 font-medium bg-slate-900/30 rounded-2xl border border-slate-900 border-dashed">
+                            No approved announcements are currently set for display.
+                        </div>`;
+                }
 
-            // Paint initial standard viewing item active visibility indicators immediately 
-            slides[0].classList.add('active');
-            counter.innerText = `Item 1 of ${totalSlides}`;
-
-            // Safety cleanup before binding intervals
-            if (slideInterval) clearInterval(slideInterval);
-
-            // If there's only 1 item, don't execute movement loops
-            if (totalSlides === 1) return;
-
-            // Bind alternating rotation runtime loop tracking arrays
-            slideInterval = setInterval(() => {
-                const previousSlide = slides[currentIndex];
-                
-                // Advance counter forward with wrapping parameters back to zero index
-                currentIndex = (currentIndex + 1) % totalSlides;
-                const nextSlide = slides[currentIndex];
-
-                // Trigger leftward exit animation transition state on old active block
-                previousSlide.classList.remove('active');
-                previousSlide.classList.add('exit');
-
-                // Animate entry frame target smoothly arriving out from the rightward direction
-                nextSlide.classList.remove('exit');
-                nextSlide.classList.add('active');
-
-                // Clean exit parameters after transition timeframe ends
-                setTimeout(() => {
-                    previousSlide.classList.remove('exit');
-                }, 800);
-
-                // Update counter signature badge component node text references
-                counter.innerText = `Item ${currentIndex + 1} of ${totalSlides}`;
-            }, animationSpeedDuration);
-        }
-
-        // Run bootstrap operations loop layout parsing
-        buildBillboardCarousel();
-
-        // Periodically verify background LocalStorage storage mutations silently every 15s to keep board updated
-        setInterval(() => {
-            const originalCount = document.querySelectorAll('.billboard-slide').length;
-            const submissions = JSON.parse(localStorage.getItem('bulletinSubmissions')) || [];
-            const activeCount = submissions.filter(item => item.status === 'approved').length;
-            
-            // Re-render only if items were added/removed to avoid layout flickering
-            if(originalCount !== activeCount) {
-                buildBillboardCarousel();
+            } catch (err) {
+                grid.innerHTML = `<div class="col-span-full p-4 text-center text-red-400 font-mono font-semibold bg-red-950/20 border border-red-900/50 rounded-xl">Terminal Linkage Loss: ${err.message}</div>`;
             }
-        }, 15000);
+        }
+
+        loadPublicBoard();
     </script>
 </body>
 </html>
