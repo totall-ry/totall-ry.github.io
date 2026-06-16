@@ -19,121 +19,147 @@
                 </p>
                 <div class="mt-6 space-y-3 text-sm">
                     <div class="flex items-start gap-3 rounded-xl border border-white/15 bg-white/10 p-3">
-                        <span class="mt-1 h-2 w-2 rounded-full bg-[#d9d2c3]"></span>
-                        <p>Use concise wording suitable for a public campus display.</p>
+                        <span class="mt-0.5 text-[#7c8f6a] font-bold">✓</span>
+                        <p class="text-stone-100/90 text-xs">Submissions undergo administrative approval before listing.</p>
                     </div>
                     <div class="flex items-start gap-3 rounded-xl border border-white/15 bg-white/10 p-3">
-                        <span class="mt-1 h-2 w-2 rounded-full bg-[#d9d2c3]"></span>
-                        <p>Approved posts stream automatically on the live board.</p>
+                        <span class="mt-0.5 text-[#7c8f6a] font-bold">✓</span>
+                        <p class="text-stone-100/90 text-xs">Standard listings hold visibility for up to 14 active days.</p>
                     </div>
                 </div>
             </div>
-            <div class="mt-8 md:mt-0 text-xs text-stone-100/80">
-                <p>Review takes 1-2 business days.</p>
-                <p class="mt-1">Email notification is sent upon approval.</p>
-                <p class="mt-4 pt-4 border-t border-white/20"><a href="index.html" class="underline hover:text-white">← Back to Login</a></p>
+            <div class="text-[11px] text-stone-100/60 font-mono tracking-wider">
+                HKU Bulletin Intake Node v1.4
             </div>
         </div>
 
-        <form id="submissionForm" class="p-8 md:col-span-3 space-y-4">
-            <div class="mb-2">
-                <p class="text-xs font-bold uppercase tracking-[0.22em] text-[#7c8f6a]">Announcement Details</p>
-                <h3 class="text-2xl font-bold text-[#1f2d1f] mt-1">Request Form</h3>
-            </div>
-
-            <div id="guestModeBanner" class="hidden rounded-xl border border-[#7c8f6a]/30 bg-[#f6f1e7] px-4 py-3 text-sm text-[#5a3e2b]">
-                Guest session is active. You can submit as a guest applicant without university login credentials.
+        <form id="submissionForm" class="p-8 md:p-10 md:col-span-3 space-y-4 bg-white/95 backdrop-blur-md">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.24em] text-[#7c8f6a]">Bulletin Request</p>
+                <h2 class="text-2xl font-bold text-[#1f2d1f] mt-1">Submit Digital Board Slip</h2>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Full Name</label>
-                    <input type="text" name="fullName" required class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Full Identity Name</label>
+                    <input type="text" name="fullName" id="fullName" required placeholder="Loading..."
+                        class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
                 </div>
                 <div>
-                    <label id="identityLabel" class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">University ID</label>
-                    <input
-                        type="text"
-                        name="universityId"
-                        required
-                        minlength="10"
-                        maxlength="10"
-                        pattern="[0-9]*"
-                        title="University ID must be exactly 10 digits long and contain only numbers."
-                        placeholder="e.g. 1234567890"
-                        class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm"
-                    >
-                    <p id="identityHint" class="mt-1 text-xs text-[#5a3e2b]/70">Use your 10-digit university identifier.</p>
+                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">University ID</label>
+                    <input type="text" name="universityId" id="universityId" required placeholder="Loading..." maxlength="10" pattern="[0-9]*"
+                        class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Preferred Email</label>
+                    <input type="email" name="preferredEmail" id="preferredEmail" required placeholder="Loading..."
+                        class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Preferred Email</label>
-                <input type="email" name="preferredEmail" required class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="sm:col-span-1">
-                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Affiliation Type</label>
-                    <select name="affiliationType" class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
-                        <option value="Club">Club</option>
-                        <option value="Faculty">Faculty</option>
-                        <option value="Guest">Guest Applicant</option>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-[#d9d2c3]/60 pt-4">
+                <div>
+                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Affiliation Entity</label>
+                    <select name="affiliationType" required class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm bg-[#fffcf6]">
+                        <option value="student_society">Student Society / Club</option>
+                        <option value="departmental">Faculty / Department</option>
+                        <option value="individual">Individual Campus Project</option>
+                        <option value="external">External Guest Applicant</option>
                     </select>
                 </div>
-                <div class="sm:col-span-2">
-                    <label id="affiliationLabel" class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Club / Faculty Name</label>
-                    <input type="text" name="affiliationName" required placeholder="e.g. Chess Club, Computer Science" class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Organization Name</label>
+                    <input type="text" name="affiliationName" required placeholder="e.g. Computer Science Society"
+                        class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Target Display Date</label>
-                <input type="date" name="displayDate" required class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
+            <div class="space-y-4 border-t border-[#d9d2c3]/60 pt-4">
+                <div>
+                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Target Visual Launch Date</label>
+                    <input type="date" name="displayDate" required
+                        class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Board Notice Message Block</label>
+                    <textarea name="message" required rows="4" placeholder="Compose the content details of your announcement here..."
+                        class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm resize-none"></textarea>
+                </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Message to Display</label>
-                <textarea name="message" rows="3" required maxlength="250" placeholder="Max 250 characters..." class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm resize-none"></textarea>
+            <div class="pt-2 flex items-center justify-between gap-4">
+                <a href="index.html" class="text-xs font-bold text-[#5a3e2b]/80 hover:text-[#1f2d1f] transition underline">
+                    ← Back to Gateway
+                </a>
+                <button type="submit" class="primary-btn px-6 py-2.5 text-white font-semibold rounded-lg transition text-sm shadow-md">
+                    Send Submission Request
+                </button>
             </div>
-
-            <button type="submit" class="primary-btn w-full text-white font-semibold py-2.5 rounded-lg transition text-sm mt-2">
-                Submit Request
-            </button>
         </form>
     </div>
 
     <script type="module">
         import { db } from "./firebase.js";
-        import { addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         const form = document.getElementById('submissionForm');
-        const searchParams = new URLSearchParams(window.location.search);
-        const isGuestMode = searchParams.get('mode') === 'guest';
-        const intakeBadge = document.getElementById('intakeBadge');
-        const intakeDescription = document.getElementById('intakeDescription');
-        const guestModeBanner = document.getElementById('guestModeBanner');
-        const identityLabel = document.getElementById('identityLabel');
-        const identityHint = document.getElementById('identityHint');
-        const identityField = form.universityId;
-        const affiliationLabel = document.getElementById('affiliationLabel');
+        
+        // Check parsing parameters for current system mode context parameters
+        const URLParameters = new URLSearchParams(window.location.search);
+        const isGuestMode = URLParameters.get('mode') === 'guest';
 
-        if (isGuestMode) {
-            intakeBadge.textContent = 'Guest Intake';
-            intakeDescription.textContent = 'Guest applicants can submit announcements, event notices, or partnership messages for review.';
-            guestModeBanner.classList.remove('hidden');
-            identityLabel.textContent = 'University ID / Guest Reference';
-            identityField.required = false;
-            identityField.removeAttribute('minlength');
-            identityField.removeAttribute('maxlength');
-            identityField.removeAttribute('pattern');
-            identityField.removeAttribute('title');
-            identityField.placeholder = 'Optional for guest applicants';
-            identityHint.textContent = 'Leave blank if you do not have an HKU university ID.';
-            affiliationLabel.textContent = 'Organization / Faculty Name';
-            form.affiliationType.value = 'Guest';
-        }
+        // --- FIXED AUTOFILL & SECURITY CHECK IMPLEMENTATION ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const cachedUserString = sessionStorage.getItem('bulletinActiveStudent');
+            const userRole = sessionStorage.getItem('bulletinSessionRole');
 
+            // Form inputs mapped by exact ID attributes
+            const nameInput = document.getElementById('fullName');
+            const idInput = document.getElementById('universityId');
+            const emailInput = document.getElementById('preferredEmail');
+
+            if (cachedUserString) {
+                try {
+                    const userData = JSON.parse(cachedUserString);
+
+                    // Inject values retrieved straight from our Firestore session cache object
+                    if (nameInput && userData.fullName) nameInput.value = userData.fullName;
+                    if (idInput && userData.universityId) idInput.value = userData.universityId;
+                    if (emailInput && userData.preferredEmail) emailInput.value = userData.preferredEmail;
+
+                    // Lock inputs as read-only if the actor is an authenticated Student member
+                    if (userRole !== 'guest') {
+                        if (nameInput) nameInput.setAttribute('readonly', 'true');
+                        if (idInput) idInput.setAttribute('readonly', 'true');
+                        if (emailInput) emailInput.setAttribute('readonly', 'true');
+                        console.log("Member identity verified. Profile inputs locked safely.");
+                    }
+                } catch (error) {
+                    console.error("Session string parsing anomaly:", error);
+                }
+            } else if (!isGuestMode) {
+                // Kick unauthenticated traffic out immediately if no session context structure exists
+                console.warn("Unverified entry block. Rerouting to authorization gate.");
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Adjust interface visual badges if visiting through Guest mode routing links
+            if (isGuestMode) {
+                const badge = document.getElementById('intakeBadge');
+                const description = document.getElementById('intakeDescription');
+                
+                if (badge) badge.textContent = 'Guest Access Gateway';
+                if (description) description.textContent = 'Submit your announcement request. Guest credentials require thorough verification.';
+                
+                // Clear placeholder textual strings for guest input convenience
+                if (nameInput) nameInput.placeholder = "Enter full legal name";
+                if (idInput) idInput.placeholder = "Enter 10-digit identity sequence";
+                if (emailInput) emailInput.placeholder = "name@example.com";
+            }
+        });
+
+        // Form submission database handler loop logic
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -156,13 +182,14 @@
             button.textContent = 'Submitting...';
 
             try {
+                // Upload document record to collection array matching rules validation paths
                 await addDoc(collection(db, "bulletinSubmissions"), newSubmission);
-                alert('Submission sent successfully!');
+                alert('Submission sent successfully! It will now await review panel clearance.');
                 this.reset();
                 window.location.href = 'index.html';
             } catch (error) {
-                console.error('Submission failed:', error);
-                alert('Submission failed. Please try again.');
+                console.error('Submission transaction crash logged:', error);
+                alert('Submission transfer network failure: ' + error.message);
             } finally {
                 button.disabled = false;
                 button.textContent = originalText;
