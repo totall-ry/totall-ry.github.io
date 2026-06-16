@@ -30,18 +30,25 @@
                         class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">University ID (10 digits)</label>
-                    <input type="text" id="regUniversityId" required placeholder="e.g. 3035123456" maxlength="10" pattern="[0-9]*"
+                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Username</label>
+                    <input type="text" id="regUsername" required placeholder="e.g. taimando99"
                         class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">University ID (10 digits)</label>
+                        <input type="text" id="regUniversityId" required placeholder="e.g. 3035123456" maxlength="10" pattern="[0-9]*"
+                            class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Choose Password</label>
+                        <input type="password" id="regPassword" required placeholder="••••••••" minlength="6"
+                            class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">HKU Portal / Preferred Email</label>
                     <input type="email" id="regPreferredEmail" required placeholder="e.g. u35xxxxx@connect.hku.hk"
-                        class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Choose Password</label>
-                    <input type="password" id="regPassword" required placeholder="••••••••" minlength="6"
                         class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
                 </div>
 
@@ -52,7 +59,7 @@
 
             <div id="otpVerificationSection" class="hidden space-y-4 border-t border-[#d9d2c3]/60 pt-4 animate-fade-in">
                 <div class="bg-[#f6f1e7]/40 border border-[#d9d2c3] rounded-xl p-3.5 text-center">
-                    <p class="text-xs text-[#5a3e2b]"> An identity token passcode was routed to your email inbox. Please enter the 6-digit sequence below to complete registration.</p>
+                    <p class="text-xs text-[#5a3e2b]">An identity token passcode was routed to your email inbox. Please enter the 6-digit sequence below to complete registration.</p>
                 </div>
 
                 <div>
@@ -80,11 +87,11 @@
 
     <script type="module">
         import { db } from "./firebase.js";
-        import { collection, addDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { collection, doc, setDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // Global Configuration parameters
-        const EMAILJS_SERVICE_ID = "service_soxo4ub";
-        const EMAILJS_TEMPLATE_ID = "template_8ak0t74";
+        const EMAILJS_SERVICE_ID = "service_soxo4ub"; //
+        const EMAILJS_TEMPLATE_ID = "template_8ak0t74"; //
 
         // Local ephemeral runtime state variables
         let systemGeneratedOTP = null;
@@ -97,41 +104,61 @@
         const resendOtpBtn = document.getElementById('resendOtpBtn');
 
         /**
-         * Core Sequence Step 1: Validates uniqueness constraints, builds OTP token, and delivers email
+         * Core Sequence Step 1: Validates unique field constraints, builds OTP token, and delivers email
          */
         registrationForm.addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const email = document.getElementById('regPreferredEmail').value.trim();
+            const username = document.getElementById('regUsername').value.trim().toLowerCase();
             const universityId = document.getElementById('regUniversityId').value.trim();
+            const email = document.getElementById('regPreferredEmail').value.trim();
 
             const submitBtn = this.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Checking records...';
+            submitBtn.textContent = 'Verifying inputs...';
 
             try {
-                // 1. Uniqueness Validation Check: Ensure University ID or Email is not already registered
-                const usersRef = collection(db, "bulletinStudents");
-                const idQuery = query(usersRef, where("universityId", "==", universityId));
-                const idSnapshot = await getDocs(idQuery);
+                // Pointing specifically to your "users" collection
+                const usersRef = collection(db, "users");
 
-                if (!idSnapshot.empty) {
-                    alert("Registration Refused: This University ID is already attached to an existing campus account.");
+                // 1. DUAL CHECK REPLICATES: Run separate queries to spot duplicates across fields
+                const usernameQuery = query(usersRef, where("username", "==", username));
+                const idQuery = query(usersRef, where("universityId", "==", universityId));
+                const emailQuery = query(usersRef, where("preferredEmail", "==", email));
+
+                const [usernameSnap, idSnap, emailSnap] = await Promise.all([
+                    getDocs(usernameQuery),
+                    getDocs(idQuery),
+                    getDocs(emailQuery)
+                ]);
+
+                // If any match is found, throw an error, block execution, and direct them to Login
+                if (!usernameSnap.empty || !idSnap.empty || !emailSnap.empty) {
+                    let duplicateField = "";
+                    if (!usernameSnap.empty) duplicateField = "Username";
+                    else if (!idSnap.empty) duplicateField = "University ID";
+                    else if (!emailSnap.empty) duplicateField = "Email Address";
+
+                    alert(`Registration Failed: This ${duplicateField} is already linked to an existing account. Please log in directly.`);
+                    
+                    // Reset operational state back to normal
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'Send Verification OTP';
                     return;
                 }
 
-                // 2. Cache formal field configurations locally until authentication finishes
+                // 2. Cache formal field configurations locally matching your exact document design
                 pendingRegistrationPayload = {
                     fullName: document.getElementById('regFullName').value.trim(),
+                    identityRole: "student", // Matches schema requirement perfectly
+                    username: username,
                     universityId: universityId,
                     preferredEmail: email,
-                    password: document.getElementById('regPassword').value, // In a real production environment, passcodes should be salted and hashed
+                    password: document.getElementById('regPassword').value, 
                     createdAt: serverTimestamp()
                 };
 
-                // 3. Fire the execution pathway to deliver the OTP
+                // 3. Fire execution path to generate and send OTP token
                 sendOTP(email);
 
             } catch (error) {
@@ -146,11 +173,9 @@
          * Generates security codes and communicates directly with EmailJS channels
          */
         function sendOTP(targetEmail) {
-            // Generate exact 6-digit numeric password sequence
             const generatedPasscode = Math.floor(100000 + Math.random() * 900000).toString();
             systemGeneratedOTP = generatedPasscode;
 
-            // Compute time boundary threshold parameters (exactly 15 minutes out)
             const expiryClock = new Date();
             expiryClock.setMinutes(expiryClock.getMinutes() + 15);
             const formattedExpiryString = expiryClock.toLocaleTimeString('en-US', {
@@ -159,23 +184,21 @@
                 hour12: true
             });
 
-            // Package key variables expected by your email HTML template: {{passcode}} and {{time}}
             const emailTemplateVariables = {
                 to_email: targetEmail,
-                passcode: generatedPasscode,
+                passcode: generatedPasscode, // Matches template binding field
                 time: formattedExpiryString
             };
 
-            // Dispatch payload over the cloud integration gateway
             emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, emailTemplateVariables)
                 .then(() => {
                     alert(`A secure verification passcode has been dispatched to: ${targetEmail}\n\nCode remains valid for 15 minutes until ${formattedExpiryString}.`);
                     
-                    // Reveal the OTP input box grid section
                     otpSection.classList.remove('hidden');
                     
-                    // Disable top-level registration adjustments to lock in details during challenge loops
+                    // Freeze input fields during validation challenge
                     document.getElementById('regFullName').setAttribute('disabled', 'true');
+                    document.getElementById('regUsername').setAttribute('disabled', 'true');
                     document.getElementById('regUniversityId').setAttribute('disabled', 'true');
                     document.getElementById('regPreferredEmail').setAttribute('disabled', 'true');
                     document.getElementById('regPassword').setAttribute('disabled', 'true');
@@ -194,7 +217,7 @@
         }
 
         /**
-         * Core Sequence Step 2: Validates input token, writes directly to Firestore database, and saves session info
+         * Core Sequence Step 2: Validates token, saves user account with custom doc ID, and updates session
          */
         verifyOtpBtn.addEventListener('click', async function() {
             const userInputCode = otpInput.value.trim();
@@ -209,25 +232,25 @@
                 return;
             }
 
-            // Lock interface elements during data writing
             verifyOtpBtn.disabled = true;
             verifyOtpBtn.textContent = 'Creating Account...';
 
             try {
-                // 1. Transaction Commit: Write validated student credentials into the Firestore collection
-                await addDoc(collection(db, "bulletinStudents"), pendingRegistrationPayload);
+                // Using setDoc with username as custom Document ID
+                const customUserDocRef = doc(db, "users", pendingRegistrationPayload.username);
+                await setDoc(customUserDocRef, pendingRegistrationPayload);
 
-                // 2. Local Cache Management: Initialize session variables so user is auto-logged-in
+                // Set local session variables to automatically log in the student
                 sessionStorage.setItem('bulletinActiveStudent', JSON.stringify({
                     fullName: pendingRegistrationPayload.fullName,
+                    username: pendingRegistrationPayload.username,
                     universityId: pendingRegistrationPayload.universityId,
                     preferredEmail: pendingRegistrationPayload.preferredEmail
                 }));
-                sessionStorage.setItem('bulletinSessionRole', 'student');
+                sessionStorage.setItem('bulletinSessionRole', 'student'); //
 
-                alert("Verification Successful! Your account has been registered.");
+                alert("Verification Successful! Your student account has been registered.");
                 
-                // 3. Clear transient tokens and transition to gateway node
                 systemGeneratedOTP = null;
                 window.location.href = 'submit.html';
 
@@ -239,7 +262,6 @@
             }
         });
 
-        // Click wrapper connection for the Resend button trigger link
         resendOtpBtn.addEventListener('click', function() {
             if (pendingRegistrationPayload && pendingRegistrationPayload.preferredEmail) {
                 sendOTP(pendingRegistrationPayload.preferredEmail);
