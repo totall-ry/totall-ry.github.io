@@ -90,6 +90,7 @@
             const emailInput = document.getElementById('email').value.trim();
 
             try {
+                // Duplication Check: Make sure username document path is vacant before writing
                 const userRef = doc(db, "users", usernameInput);
                 const userSnap = await getDoc(userRef);
 
@@ -98,21 +99,23 @@
                     return;
                 }
 
+                // Payload Assembly matching your custom cloud schema explicitly
                 const userPayload = {
                     password: passwordInput,
-                    role: 'student',
+                    identityRole: 'student', // <-- Directly ensures uniform data storage keys inside cloud documents
                     fullName: fullNameInput,
                     universityId: universityIdInput,
                     preferredEmail: emailInput
                 };
 
+                // Save user profile state into Cloud Firestore users collection array maps
                 await setDoc(userRef, userPayload);
                 
                 alert('Account successfully registered! Proceeding to portal gateway.');
                 window.location.href = 'index.html';
 
             } catch (err) {
-                alert("Database record transaction error: " + err.message);
+                alert("Database registration error: " + err.message);
             }
         });
     </script>

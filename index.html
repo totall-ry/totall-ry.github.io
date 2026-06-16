@@ -87,6 +87,7 @@
     </div>
 
     <script type="module">
+        // Import local initialized app configuration module
         import { db } from "./firebase.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
@@ -100,15 +101,24 @@
             const passwordInput = document.getElementById('password').value;
 
             try {
+                // Point securely at users location document nodes based on the intake username string
                 const userRef = doc(db, "users", usernameInput);
                 const userSnap = await getDoc(userRef);
 
                 if (userSnap.exists()) {
                     const userData = userSnap.data();
 
+                    // Confirm match on current authentication password value fields
                     if (userData.password === passwordInput) {
-                        // Set up session memory properties for submit page verification steps
-                        sessionStorage.setItem('bulletinSessionRole', userData.role || 'student');
+                        
+                        // Fallback Schema Fix: Accommodate role variations or completely vacant parameters 
+                        let assignedRole = 'student';
+                        if (userData.role === 'admin' || userData.identityRole === 'admin') {
+                            assignedRole = 'admin';
+                        }
+
+                        // Save identity parameters in tab session context mapping securely
+                        sessionStorage.setItem('bulletinSessionRole', assignedRole);
                         sessionStorage.setItem('bulletinActiveStudent', JSON.stringify({
                             fullName: userData.fullName || 'User Account',
                             username: usernameInput,
@@ -116,7 +126,8 @@
                             preferredEmail: userData.preferredEmail || ''
                         }));
 
-                        if (userData.role === 'admin') {
+                        // Route to the dashboard that fits the evaluated permissions status
+                        if (assignedRole === 'admin') {
                             window.location.href = 'admin.html';
                         } else {
                             window.location.href = 'submit.html';
@@ -128,12 +139,12 @@
                     errorContainer.classList.remove('hidden');
                 }
             } catch (err) {
-                console.error("Authentication error details:", err);
-                alert("Connection loss during authentication: " + err.message);
+                console.error("Database Auth Process Exception Log:", err);
+                alert("Connection handshake lost: " + err.message);
             }
         });
 
-        // Sync local storage tags if they choose the Guest path
+        // Track local session maps if they choose the Guest applicant entry route
         document.getElementById('guestBtn').addEventListener('click', function() {
             sessionStorage.setItem('bulletinSessionRole', 'guest');
             sessionStorage.setItem('bulletinActiveStudent', JSON.stringify({
