@@ -6,6 +6,12 @@
     <title>Admin Dashboard | Bulletin Board</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function() {
+            emailjs.init("e8mvIOZJuoRXgs_K5");
+        })();
+    </script>
 </head>
 <body class="admin-backdrop font-sans min-h-screen">
 
@@ -55,9 +61,7 @@
                 <h2 class="text-lg font-bold text-[#1f2d1f]">Live Board Announcements</h2>
                 <p class="text-xs text-[#5a3e2b]/70">Currently active items displaying on the live bulletin carousel view.</p>
             </div>
-
-            <div id="approvedContainer" class="space-y-3">
-                </div>
+            <div id="approvedContainer" class="space-y-3"></div>
         </section>
 
         <section class="space-y-4 border-t border-[#d9d2c3]/60 pt-6">
@@ -97,7 +101,7 @@
             
             <div>
                 <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Reason Log Entry</label>
-                <textarea id="denialReasonText" required rows="3" placeholder="e.g., Form parameters violate campus advertising guidelines or contain invalid timeline entries..."
+                <textarea id="denialReasonText" required rows="3" placeholder="e.g., Form parameters violate campus advertising guidelines..."
                     class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm resize-none"></textarea>
             </div>
 
@@ -119,22 +123,21 @@
         let submissions = [];
         const modal = document.getElementById('denialModal');
 
-        // Main evaluation engine callback mapping layout
+        const EMAILJS_SERVICE_ID = "service_soxo4ub";
+        const EMAILJS_TEMPLATE_ID = "template_xobtrrk";
+
         function processDashboardStreams() {
             const pendingArr = submissions.filter(item => item.status === 'pending');
             const approvedArr = submissions.filter(item => item.status === 'approved');
             const deniedArr = submissions.filter(item => item.status === 'denied');
-            
-            // All items that have been actioned out of pending status
             const historicalArr = submissions.filter(item => item.status === 'approved' || item.status === 'denied');
 
-            // 1. Sync global dashboard numerical status badge arrays
             document.getElementById('pendingBadge').textContent = `${pendingArr.length} Pending`;
             document.getElementById('metricPending').textContent = pendingArr.length;
             document.getElementById('metricApproved').textContent = approvedArr.length;
             document.getElementById('metricDenied').textContent = deniedArr.length;
 
-            // 2. Render pending queue row objects
+            // Render Pending Queue
             const pendingContainer = document.getElementById('pendingContainer');
             if (pendingArr.length === 0) {
                 pendingContainer.innerHTML = `
@@ -160,7 +163,6 @@
                                 <p><strong class="text-[#1f2d1f]">Route Path:</strong> <span class="capitalize font-mono text-[10px] bg-gray-100 px-1.5 py-0.5 rounded">${item.submittedVia || 'portal'}</span></p>
                             </div>
                         </div>
-
                         <div class="grid grid-cols-2 gap-2.5 border-t border-gray-100 pt-3">
                             <button onclick="openDenialModal('${item.docId}')" class="border border-red-200 text-red-700 hover:bg-red-50 text-xs font-bold py-2 rounded-lg transition text-center">
                                 Reject Notice
@@ -173,7 +175,7 @@
                 `).join('');
             }
 
-            // 3. Render currently active digital board notices dashboard list entries
+            // Render Active Announcements
             const approvedContainer = document.getElementById('approvedContainer');
             if (approvedArr.length === 0) {
                 approvedContainer.innerHTML = `
@@ -189,7 +191,7 @@
                                 <h4 class="text-xs font-bold text-[#1f2d1f]">${item.affiliationName}</h4>
                             </div>
                             <p class="text-xs text-stone-600 line-clamp-1 italic">"${item.message}"</p>
-                            <p class="text-[10px] text-stone-500 font-medium">Approved Sender Identity Match: ${item.fullName} (${item.universityId})</p>
+                            <p class="text-[10px] text-stone-500 font-medium">Approved Sender: ${item.fullName} (${item.universityId})</p>
                         </div>
                         <button onclick="removeItemFromBoard('${item.docId}')" class="self-end sm:self-center px-3 py-1.5 border border-amber-300 text-amber-800 hover:bg-amber-50 rounded-lg text-[11px] font-bold transition whitespace-nowrap">
                             Revoke Notice
@@ -198,7 +200,7 @@
                 `).join('');
             }
 
-            // 4. Render the Processed Items History Log Table
+            // Render History Log Archive Table
             const historyTableBody = document.getElementById('historyTableBody');
             if (historicalArr.length === 0) {
                 historyTableBody.innerHTML = `
@@ -206,14 +208,10 @@
                         <td colspan="5" class="p-6 text-center text-[#5a3e2b]/60 font-medium">No processing data written to history.</td>
                     </tr>`;
             } else {
-                // Sort by displayDate descending so recent activity entries show up first
                 historicalArr.sort((a, b) => String(b.displayDate).localeCompare(String(a.displayDate)));
-                
                 historyTableBody.innerHTML = historicalArr.map(item => {
                     const isApproved = item.status === 'approved';
-                    const badgeClass = isApproved 
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
-                        : 'bg-red-100 text-red-800 border-red-200';
+                    const badgeClass = isApproved ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-red-100 text-red-800 border-red-200';
                     const rowBgClass = isApproved ? 'hover:bg-emerald-50/20' : 'hover:bg-red-50/10';
 
                     return `
@@ -223,43 +221,64 @@
                                 <div class="font-bold text-[#1f2d1f]">${item.affiliationName || 'Independent'}</div>
                                 <div class="text-[10px] text-stone-500">${item.fullName || 'Anonymous'} (${item.universityId || 'N/A'})</div>
                             </td>
-                            <td class="p-3 max-w-xs truncate text-stone-600" title="${item.message}">
-                                ${item.message || ''}
-                            </td>
+                            <td class="p-3 max-w-xs truncate text-stone-600" title="${item.message}">${item.message || ''}</td>
                             <td class="p-3 text-center whitespace-nowrap">
-                                <span class="px-2.5 py-1 border rounded-full text-[10px] font-black uppercase tracking-wider ${badgeClass}">
-                                    ${item.status}
-                                </span>
+                                <span class="px-2.5 py-1 border rounded-full text-[10px] font-black uppercase tracking-wider ${badgeClass}">${item.status}</span>
                             </td>
                             <td class="p-3 text-stone-600 font-medium">
                                 ${isApproved 
                                     ? '<span class="text-emerald-700 font-semibold italic">Listing Active & Visible</span>' 
                                     : `<span class="text-red-700 font-semibold">Rejected:</span> <span class="italic text-stone-500">${item.denialReason || 'No reasoning annotated.'}</span>`}
                             </td>
-                        </tr>
-                    `;
+                        </tr>`;
                 }).join('');
             }
         }
 
-        // Processing mutations helper interface
         async function updateStatus(id, newStatus, reason = '') {
             try {
                 const docRef = doc(db, "bulletinSubmissions", id);
                 const payload = { status: newStatus };
+                
                 if (newStatus === 'denied') {
-                    payload.denialReason = reason;
+                    payload.denialReason = reason.trim();
                 }
+                
                 await updateDoc(docRef, payload);
+                console.log(`Firestore document successfully updated to status: ${newStatus}`);
+
+                const matchingItem = submissions.find(item => item.docId === id);
+                if (!matchingItem) return;
+
+                const dynamicStatusColor = (newStatus === 'approved') ? '#105738' : '#e53e3e';
+                let finalFormattedReason = reason.trim();
+                if (!finalFormattedReason) {
+                    finalFormattedReason = (newStatus === 'approved') ? "Listing is now active on the public display board." : "No reason provided.";
+                }
+
+                if (matchingItem.preferredEmail) {
+                    const templateParams = {
+                        to_email: matchingItem.preferredEmail,
+                        fullName: matchingItem.fullName || "Campus Member",
+                        affiliationName: matchingItem.affiliationName || "Independent Notice",
+                        message: matchingItem.message || "",
+                        status: newStatus.toUpperCase(),
+                        reason: finalFormattedReason,
+                        statusColor: dynamicStatusColor
+                    };
+
+                    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
+                        .then(() => console.log(`Auto-reply sent to: ${matchingItem.preferredEmail}`))
+                        .catch((err) => console.error("EmailJS dispatch failure:", err));
+                }
             } catch (error) {
-                console.error("Mutation submission failure:", error);
-                alert("Database transactional state failure: " + error.message);
+                console.error("Pipeline update failure:", error);
+                alert("Database state sync crash: " + error.message);
             }
         }
 
         async function removeItemFromBoard(id) {
-            if (confirm("Are you sure you want to take this announcement offline? This removes it from the board display and sends it to the audit history log archive.")) {
-                // Changing status to denied removes it from the display board but keeps it visible in the archive
+            if (confirm("Are you sure you want to take this announcement offline? This moves it to the history archive.")) {
                 await updateStatus(id, 'denied', 'Revoked early by board administrator.');
             }
         }
@@ -282,22 +301,16 @@
             closeDenialModal();
         });
 
-        // Attach Realtime Pipeline Listener Hook to the sub collection node
         onSnapshot(collection(db, "bulletinSubmissions"), (snapshot) => {
             submissions = [];
             snapshot.forEach(docSnap => {
-                submissions.push({
-                    docId: docSnap.id,
-                    ...docSnap.data()
-                });
+                submissions.push({ docId: docSnap.id, ...docSnap.data() });
             });
             processDashboardStreams();
         }, (error) => {
-            console.error("Pipeline Sync Loss:", error);
-            alert('Cloud architecture connection failed to fetch data mappings.');
+            console.error("Active collection sync baseline severed:", error);
         });
 
-        // Set global window mappings to safely expose interaction hooks inside elements template inline bindings
         window.updateStatus = updateStatus;
         window.openDenialModal = openDenialModal;
         window.closeDenialModal = closeDenialModal;
