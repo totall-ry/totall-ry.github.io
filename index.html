@@ -34,7 +34,7 @@
             </div>
         </section>
 
-        <section class="p-8 md:p-10 space-y-6">
+        <section class="p-8 md:p-10 space-y-6 bg-white/95 backdrop-blur-md">
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.24em] text-[#7c8f6a]">Secure Portal</p>
                 <h2 class="text-2xl font-bold text-[#1f2d1f] mt-2">Campus Bulletin Gateway</h2>
@@ -54,7 +54,7 @@
                 </div>
 
                 <div id="errorMessage" class="text-red-600 text-xs hidden text-center font-semibold">
-                    Invalid credentials.
+                    Invalid credentials. Please verify your username and password.
                 </div>
 
                 <button type="submit" class="primary-btn w-full text-white font-semibold py-2.5 rounded-lg transition text-sm">
@@ -67,13 +67,18 @@
                 <p class="mt-2 text-sm text-[#5a3e2b]/80">External applicants can continue without portal credentials.</p>
                 <a
                     href="submit.html?mode=guest"
+                    id="guestBtn"
                     class="mt-3 inline-flex items-center justify-center w-full rounded-lg border border-[#3e5c3b]/20 bg-white px-4 py-2.5 text-sm font-semibold text-[#1f2d1f] transition hover:border-[#3e5c3b]/40 hover:bg-[#f6f1e7]"
                 >
                     Access System as Guest Applicant
                 </a>
             </div>
 
-            <div class="border-t border-[#d9d2c3] pt-4 text-center">
+            <div class="border-t border-[#d9d2c3] pt-4 text-center flex flex-col gap-2">
+                <p class="text-xs text-[#5a3e2b]/70">
+                    New to the billboard system? 
+                    <a href="register.html" class="text-[#3e5c3b] font-bold hover:underline">Create Account</a>
+                </p>
                 <a href="display.html" class="hku-link text-xs font-bold hover:underline">
                     View Public Live Display Board →
                 </a>
@@ -81,19 +86,62 @@
         </section>
     </div>
 
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const user = document.getElementById('username').value.trim().toLowerCase();
-            const pass = document.getElementById('password').value;
+    <script type="module">
+        import { db } from "./firebase.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-            if (user === 'admin' && pass === 'admin') {
-                window.location.href = 'admin.html';
-            } else if (user === 'student' && pass === 'student') {
-                window.location.href = 'submit.html';
-            } else {
-                document.getElementById('errorMessage').classList.remove('hidden');
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const errorContainer = document.getElementById('errorMessage');
+            errorContainer.classList.add('hidden');
+
+            const usernameInput = document.getElementById('username').value.trim().toLowerCase();
+            const passwordInput = document.getElementById('password').value;
+
+            try {
+                const userRef = doc(db, "users", usernameInput);
+                const userSnap = await getDoc(userRef);
+
+                if (userSnap.exists()) {
+                    const userData = userSnap.data();
+
+                    if (userData.password === passwordInput) {
+                        // Set up session memory properties for submit page verification steps
+                        sessionStorage.setItem('bulletinSessionRole', userData.role || 'student');
+                        sessionStorage.setItem('bulletinActiveStudent', JSON.stringify({
+                            fullName: userData.fullName || 'User Account',
+                            username: usernameInput,
+                            universityId: userData.universityId || '',
+                            preferredEmail: userData.preferredEmail || ''
+                        }));
+
+                        if (userData.role === 'admin') {
+                            window.location.href = 'admin.html';
+                        } else {
+                            window.location.href = 'submit.html';
+                        }
+                    } else {
+                        errorContainer.classList.remove('hidden');
+                    }
+                } else {
+                    errorContainer.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Authentication error details:", err);
+                alert("Connection loss during authentication: " + err.message);
             }
+        });
+
+        // Sync local storage tags if they choose the Guest path
+        document.getElementById('guestBtn').addEventListener('click', function() {
+            sessionStorage.setItem('bulletinSessionRole', 'guest');
+            sessionStorage.setItem('bulletinActiveStudent', JSON.stringify({
+                fullName: 'Guest Applicant',
+                username: 'system_guest',
+                universityId: '0000000000',
+                preferredEmail: 'guest@hku.hk'
+            }));
         });
     </script>
 </body>
