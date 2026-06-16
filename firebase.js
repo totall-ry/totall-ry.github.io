@@ -12,7 +12,4 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-
-// Mount db directly to window scope so index, register, submit, admin, and display can use it instantly
-window.db = getFirestore(app);
-export const db = window.db;
+export const db = getFirestore(app);

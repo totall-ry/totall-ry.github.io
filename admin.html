@@ -3,223 +3,297 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | Campus Portal</title>
+    <title>Admin Dashboard | Bulletin Board</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module" src="./firebase.js"></script>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-slate-100 font-sans min-h-screen">
+<body class="admin-backdrop font-sans min-h-screen">
 
-    <header class="bg-slate-900 text-white px-8 py-4 flex justify-between items-center shadow-md">
-        <div>
-            <h1 class="text-xl font-bold tracking-tight">System Portal Administration</h1>
-            <p class="text-xs text-slate-400 mt-0.5">Live Bulletin Review Control Panel</p>
+    <nav class="bg-[#1f2d1f] border-b border-[#d9d2c3]/20 px-6 py-4 flex justify-between items-center shadow-lg">
+        <div class="flex items-center space-x-4">
+            <h1 class="text-xl font-bold text-[#f6f1e7]">Bulletin Admin Control Panel</h1>
+            <a href="index.html" class="text-xs text-[#d9d2c3]/70 hover:text-white">Logout</a>
         </div>
-        <button onclick="logOut()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow">
-            Exit Panel
-        </button>
-    </header>
+        <span id="pendingBadge" class="bg-[#d9d2c3] text-[#1f2d1f] text-xs font-bold px-2.5 py-1 rounded-full">0 Pending</span>
+    </nav>
 
-    <main class="max-w-7xl mx-auto p-6 space-y-6">
-        
-        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-            <div class="flex gap-4">
-                <button id="tabPendingBtn" onclick="switchTab('pending')" class="border-b-2 border-blue-600 text-blue-600 font-bold text-sm pb-2 px-2 transition focus:outline-none">
-                    Pending Queue (<span id="pendingCounter">0</span>)
-                </button>
-                <button id="tabHistoryBtn" onclick="switchTab('history')" class="border-b-2 border-transparent text-slate-400 hover:text-slate-600 font-semibold text-sm pb-2 px-2 transition focus:outline-none">
-                    Review History (<span id="historyCounter">0</span>)
-                </button>
+    <main class="max-w-7xl mx-auto p-6 space-y-8">
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="stone-card p-4 rounded-xl">
+                <p class="text-xs font-semibold text-[#5a3e2b]/70 uppercase">Pending Review</p>
+                <p id="statPending" class="text-2xl font-bold text-[#5a3e2b] mt-1">0</p>
             </div>
-            <span id="queueCounter" class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">Viewing: Pending Queue</span>
+            <div class="stone-card p-4 rounded-xl">
+                <p class="text-xs font-semibold text-[#5a3e2b]/70 uppercase">Live on Display Board</p>
+                <p id="statApproved" class="text-2xl font-bold text-[#3e5c3b] mt-1">0</p>
+            </div>
+            <div class="stone-card p-4 rounded-xl">
+                <p class="text-xs font-semibold text-[#5a3e2b]/70 uppercase">Total Items Processed</p>
+                <p id="statTotal" class="text-2xl font-bold text-[#1f2d1f] mt-1">0</p>
+            </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                        <th class="p-4">Applicant Info</th>
-                        <th class="p-4">Affiliation Target</th>
-                        <th class="p-4">Target Date</th>
-                        <th class="p-4">Announcement Message</th>
-                        <th class="p-4 text-center" id="actionColumnHeader">Status Control Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="adminQueueTableBody" class="text-sm divide-y divide-slate-100 text-slate-700">
-                    <tr>
-                        <td colspan="5" class="p-8 text-center text-slate-400 font-medium bg-slate-50/50">
-                            Initializing remote handshake configuration modules...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="stone-card rounded-xl overflow-hidden">
+            <div class="p-4 border-b border-[#d9d2c3] bg-[#d9d2c3]/35">
+                <h2 class="font-semibold text-[#1f2d1f] flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[#5a3e2b]"></span>
+                    Incoming Requests Queue (Pending Review)
+                </h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="border-b border-[#d9d2c3] bg-[#f6f1e7] text-[#5a3e2b]/75 uppercase text-[11px] font-bold tracking-wider">
+                            <th class="p-4">Student Info</th>
+                            <th class="p-4">Entity/Affiliation</th>
+                            <th class="p-4">Message Content</th>
+                            <th class="p-4">Target Date</th>
+                            <th class="p-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-[#d9d2c3]/55 text-[#1f2d1f]/78">
+                        <tr><td colspan="5" class="p-6 text-center text-[#5a3e2b]/55">Loading pending submissions...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
+
+        <div class="stone-card rounded-xl overflow-hidden">
+            <div class="p-4 border-b border-[#d9d2c3] bg-[#7c8f6a]/18">
+                <h2 class="font-semibold text-[#1f2d1f] flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[#3e5c3b]"></span>
+                    Active Display Board Feed (Currently Live)
+                </h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="border-b border-[#d9d2c3] bg-[#f6f1e7] text-[#5a3e2b]/75 uppercase text-[11px] font-bold tracking-wider">
+                            <th class="p-4">Displaying Entity</th>
+                            <th class="p-4">Message Content</th>
+                            <th class="p-4">Target Date</th>
+                            <th class="p-4 text-right">Emergency Control</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activeBoardBody" class="divide-y divide-[#d9d2c3]/55 text-[#1f2d1f]/78">
+                        <tr><td colspan="4" class="p-6 text-center text-[#5a3e2b]/55">Loading live board feed...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </main>
 
+    <dialog id="denialModal" class="backdrop:bg-[#1f2d1f]/55 rounded-xl shadow-xl max-w-md w-full p-6 border border-[#d9d2c3] bg-[#f6f1e7]">
+        <h3 class="text-base font-bold text-[#1f2d1f] mb-2">Deny Request</h3>
+        <p class="text-xs text-[#5a3e2b]/70 mb-4">Provide an administrative reason. This breakdown will automatically simulate an email routing notification to the user.</p>
+
+        <form method="dialog" id="denialForm" class="space-y-4">
+            <input type="hidden" id="modalSubmissionId" name="submissionId">
+            <div>
+                <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Reason for Rejection</label>
+                <textarea id="denialReasonText" required rows="3" placeholder="Identify missing structural info, formatting issues, policy clash..." class="field w-full px-3 py-2 border rounded-lg text-sm focus:outline-none resize-none"></textarea>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button type="button" onclick="closeDenialModal()" class="px-4 py-2 text-xs font-medium text-[#5a3e2b] hover:bg-[#d9d2c3]/45 rounded-lg transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-xs font-medium bg-red-700 hover:bg-red-800 text-white rounded-lg transition">Send Denial & Email</button>
+            </div>
+        </form>
+    </dialog>
+
     <script type="module">
-        import { collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { db } from "./firebase.js";
+        import {
+            collection,
+            onSnapshot,
+            doc,
+            updateDoc,
+            deleteDoc,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        // Global dashboard state track variables
-        let currentTab = 'pending'; 
-        let allSubmissionsCached = [];
+        const tableBody = document.getElementById('tableBody');
+        const activeBoardBody = document.getElementById('activeBoardBody');
+        const modal = document.getElementById('denialModal');
 
-        if (sessionStorage.getItem('bulletinSessionRole') !== 'admin') {
-            alert('Admin structural validation signature missing. Redirection active.');
-            window.location.href = 'index.html';
+        let submissions = [];
+
+        function normalizeItem(item) {
+            return {
+                docId: item.docId,
+                id: item.docId,
+                fullName: item.fullName || '',
+                universityId: item.universityId || '',
+                preferredEmail: item.preferredEmail || '',
+                affiliationType: item.affiliationType || 'Club',
+                affiliationName: item.affiliationName || '',
+                displayDate: item.displayDate || '',
+                message: item.message || '',
+                status: item.status || 'pending',
+                denialReason: item.denialReason || '',
+                createdAt: item.createdAt || 0,
+                reviewedAt: item.reviewedAt || null
+            };
         }
 
-        async function loadDatabaseData() {
-            const db = window.db;
-            const tableBody = document.getElementById('adminQueueTableBody');
-
-            if (!db) {
-                setTimeout(loadDatabaseData, 250);
-                return;
-            }
-
-            try {
-                const querySnapshot = await getDocs(collection(db, "bulletinSubmissions"));
-                allSubmissionsCached = [];
-                
-                querySnapshot.forEach((docSnap) => {
-                    allSubmissionsCached.push(docSnap.data());
-                });
-
-                // Sort submissions chronologically by their ID timestamps (newest entries first)
-                allSubmissionsCached.sort((a, b) => b.id.localeCompare(a.id));
-
-                renderTableViews();
-            } catch (err) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500 font-bold">Error loading database index paths: ${err.message}</td></tr>`;
-            }
+        function sortByCreatedAt(items) {
+            return [...items].sort((a, b) => {
+                const ta = typeof a.createdAt === 'object' && a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt || 0);
+                const tb = typeof b.createdAt === 'object' && b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt || 0);
+                return ta - tb;
+            });
         }
 
-        function renderTableViews() {
-            const tableBody = document.getElementById('adminQueueTableBody');
-            const pCountLabel = document.getElementById('pendingCounter');
-            const hCountLabel = document.getElementById('historyCounter');
-            const actionHeader = document.getElementById('actionColumnHeader');
-            
-            tableBody.innerHTML = "";
+        function updateMetrics(items) {
+            const pending = items.filter(i => i.status === 'pending').length;
+            const approved = items.filter(i => i.status === 'approved').length;
 
-            // Calculate live status lengths across storage array tracking blocks
-            const pendingList = allSubmissionsCached.filter(item => !item.status || item.status === 'pending');
-            const historyList = allSubmissionsCached.filter(item => item.status === 'approved' || item.status === 'rejected');
+            document.getElementById('pendingBadge').innerText = `${pending} Pending`;
+            document.getElementById('statPending').innerText = pending;
+            document.getElementById('statApproved').innerText = approved;
+            document.getElementById('statTotal').innerText = items.length;
+        }
 
-            pCountLabel.innerText = pendingList.length;
-            hCountLabel.innerText = historyList.length;
+        function renderDashboards() {
+            const items = sortByCreatedAt(submissions.map(normalizeItem));
+            updateMetrics(items);
 
-            const targetDisplayList = currentTab === 'pending' ? pendingList : historyList;
+            tableBody.innerHTML = '';
+            const pendingItems = items.filter(item => item.status === 'pending');
 
-            if (currentTab === 'pending') {
-                actionHeader.innerText = "Status Control Actions";
+            if (pendingItems.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-[#5a3e2b]/55">No pending submissions found in queue.</td></tr>`;
             } else {
-                actionHeader.innerText = "Log Audit Status";
-            }
-
-            if (targetDisplayList.length === 0) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="p-8 text-center text-slate-400 font-medium">
-                            No submissions found matching this view category.
+                pendingItems.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-[#f6f1e7]/80";
+                    tr.innerHTML = `
+                        <td class="p-4">
+                            <div class="font-medium text-[#1f2d1f]">${item.fullName}</div>
+                            <div class="text-xs text-[#5a3e2b]/55">ID: ${item.universityId} • ${item.preferredEmail}</div>
                         </td>
-                    </tr>`;
-                return;
+                        <td class="p-4">
+                            <div class="font-medium text-[#1f2d1f]/85">${item.affiliationName}</div>
+                            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md ${item.affiliationType === 'Club' ? 'bg-[#d9d2c3] text-[#5a3e2b]' : 'bg-[#7c8f6a]/25 text-[#3e5c3b]'}">
+                                ${item.affiliationType}
+                            </span>
+                        </td>
+                        <td class="p-4 max-w-xs truncate" title="${item.message}">${item.message}</td>
+                        <td class="p-4 font-mono text-xs">${item.displayDate}</td>
+                        <td class="p-4 text-right space-x-2 whitespace-nowrap">
+                            <button onclick="updateStatus('${item.docId}', 'approved')" class="bg-[#3e5c3b] hover:bg-[#1f2d1f] text-white px-3 py-1.5 rounded-lg font-medium text-xs transition">Approve</button>
+                            <button onclick="openDenialModal('${item.docId}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-medium text-xs transition">Deny</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
             }
 
-            targetDisplayList.forEach((item) => {
-                let statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800">Pending</span>`;
-                if (item.status === 'approved') statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">Approved</span>`;
-                if (item.status === 'rejected') statusPill = `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-100 text-rose-800">Rejected</span>`;
+            activeBoardBody.innerHTML = '';
+            const approvedItems = items.filter(item => item.status === 'approved');
 
-                // Render functional modifier control buttons if on Pending tab, hide them if reading past history
-                let actionColumnContent = "";
-                if (currentTab === 'pending') {
-                    actionColumnContent = `
-                        <div class="flex items-center justify-center gap-2">
-                            <button data-id="${item.id}" data-action="approved" class="action-btn bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-2.5 py-1.5 rounded transition shadow-sm">
-                                Approve
+            if (approvedItems.length === 0) {
+                activeBoardBody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-[#5a3e2b]/55">No active notices are currently displayed on the live board.</td></tr>`;
+            } else {
+                approvedItems.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-[#f6f1e7]/80 bg-[#7c8f6a]/8";
+                    tr.innerHTML = `
+                        <td class="p-4">
+                            <div class="font-semibold text-[#1f2d1f]">${item.affiliationName}</div>
+                            <div class="text-xs text-[#5a3e2b]/55">Submitted by: ${item.fullName}</div>
+                        </td>
+                        <td class="p-4 max-w-md break-words">${item.message}</td>
+                        <td class="p-4 font-mono text-xs">${item.displayDate}</td>
+                        <td class="p-4 text-right">
+                            <button onclick="removeItemFromBoard('${item.docId}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg font-medium text-xs transition shadow-sm">
+                                Remove from Board
                             </button>
-                            <button data-id="${item.id}" data-action="rejected" class="action-btn bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs px-2.5 py-1.5 rounded transition shadow-sm">
-                                Reject
-                            </button>
-                        </div>`;
-                } else {
-                    actionColumnContent = `<div class="flex items-center justify-center">${statusPill}</div>`;
+                        </td>
+                    `;
+                    activeBoardBody.appendChild(tr);
+                });
+            }
+        }
+
+        async function updateStatus(id, newStatus, reason = '') {
+            try {
+                const payload = {
+                    status: newStatus,
+                    reviewedAt: serverTimestamp()
+                };
+
+                if (newStatus === 'denied') {
+                    payload.denialReason = reason || '';
                 }
 
-                const tableRow = document.createElement('tr');
-                tableRow.className = "hover:bg-slate-50/70 transition";
-                tableRow.innerHTML = `
-                    <td class="p-4">
-                        <div class="font-semibold text-slate-800">${item.fullName || 'Unknown'}</div>
-                        <div class="text-xs text-slate-400 font-mono mt-0.5">ID: ${item.universityId || '---'}</div>
-                        <div class="text-xs text-blue-600 underline">${item.preferredEmail || '---'}</div>
-                    </td>
-                    <td class="p-4 font-medium text-slate-600">
-                        <span class="text-xs font-bold text-slate-400 uppercase block">${item.affiliationType || 'Club'}</span>
-                        ${item.affiliationName || 'General Listing'}
-                    </td>
-                    <td class="p-4 font-mono text-xs font-semibold text-slate-600">
-                        ${item.displayDate || 'Immediate'}
-                    </td>
-                    <td class="p-4 max-w-xs break-words text-slate-600 leading-relaxed text-xs">
-                        ${item.message || 'No string payload recorded.'}
-                    </td>
-                    <td class="p-4 text-center">
-                        ${actionColumnContent}
-                    </td>
-                `;
-                tableBody.appendChild(tableRow);
-            });
+                await updateDoc(doc(db, "bulletinSubmissions", id), payload);
 
-            if (currentTab === 'pending') attachButtonListeners();
+                const matchingItem = submissions.find(item => item.docId === id);
+                if (matchingItem && newStatus === 'approved') {
+                    alert(`[Simulated Email Sent]\nTo: ${matchingItem.preferredEmail}\nSubject: Request Approved!\nYour notice for "${matchingItem.affiliationName}" is now active on the public board.`);
+                } else if (matchingItem && newStatus === 'denied') {
+                    alert(`[Simulated Email Sent]\nTo: ${matchingItem.preferredEmail}\nSubject: Request Denied\nReason: ${reason}`);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Failed to update status.');
+            }
         }
 
-        function attachButtonListeners() {
-            document.querySelectorAll('.action-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = e.target.getAttribute('data-id');
-                    const targetState = e.target.getAttribute('data-action');
-                    const db = window.db;
+        async function removeItemFromBoard(id) {
+            const matchingItem = submissions.find(item => item.docId === id);
+            const label = matchingItem ? matchingItem.affiliationName : id;
+            if (!confirm(`Are you sure you want to manually remove the notice for "${label}" from the public display board?`)) return;
 
-                    if (!db || !id) return;
+            try {
+                await updateDoc(doc(db, "bulletinSubmissions", id), {
+                    status: 'removed',
+                    reviewedAt: serverTimestamp()
+                });
+            } catch (error) {
+                console.error(error);
+                alert('Failed to remove item from board.');
+            }
+        }
 
-                    try {
-                        const reference = doc(db, "bulletinSubmissions", id);
-                        await updateDoc(reference, { status: targetState });
-                        alert(`Request node updated to [${targetState.toUpperCase()}] successfully.`);
-                        loadDatabaseData(); // Fetch absolute latest state mutations
-                    } catch (err) {
-                        alert("State migration failed layout bounds: " + err.message);
-                    }
+        function openDenialModal(id) {
+            document.getElementById('modalSubmissionId').value = id;
+            document.getElementById('denialReasonText').value = '';
+            modal.showModal();
+        }
+
+        function closeDenialModal() {
+            modal.close();
+        }
+
+        document.getElementById('denialForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('modalSubmissionId').value;
+            const reason = document.getElementById('denialReasonText').value.trim();
+            await updateStatus(id, 'denied', reason);
+            closeDenialModal();
+        });
+
+        onSnapshot(collection(db, "bulletinSubmissions"), (snapshot) => {
+            submissions = [];
+            snapshot.forEach(docSnap => {
+                submissions.push({
+                    docId: docSnap.id,
+                    ...docSnap.data()
                 });
             });
-        }
+            renderDashboards();
+        }, (error) => {
+            console.error(error);
+            alert('Failed to load submissions.');
+        });
 
-        // Expose tab switcher to global document scope safely
-        window.switchTab = function(targetTabName) {
-            currentTab = targetTabName;
-            const pBtn = document.getElementById('tabPendingBtn');
-            const hBtn = document.getElementById('tabHistoryBtn');
-            const displayTitle = document.getElementById('queueCounter');
-
-            if (currentTab === 'pending') {
-                pBtn.className = "border-b-2 border-blue-600 text-blue-600 font-bold text-sm pb-2 px-2 transition focus:outline-none";
-                hBtn.className = "border-b-2 border-transparent text-slate-400 hover:text-slate-600 font-semibold text-sm pb-2 px-2 transition focus:outline-none";
-                displayTitle.innerText = "Viewing: Pending Queue";
-            } else {
-                pBtn.className = "border-b-2 border-transparent text-slate-400 hover:text-slate-600 font-semibold text-sm pb-2 px-2 transition focus:outline-none";
-                hBtn.className = "border-b-2 border-blue-600 text-blue-600 font-bold text-sm pb-2 px-2 transition focus:outline-none";
-                displayTitle.innerText = "Viewing: Completed Logs Audit";
-            }
-            renderTableViews();
-        };
-
-        // Initialize queue scanning pipelines
-        loadDatabaseData();
-    </script>
-    <script>
-        function logOut() { sessionStorage.clear(); window.location.href = 'index.html'; }
+        window.updateStatus = updateStatus;
+        window.openDenialModal = openDenialModal;
+        window.closeDenialModal = closeDenialModal;
+        window.removeItemFromBoard = removeItemFromBoard;
     </script>
 </body>
 </html>

@@ -1,0 +1,100 @@
+:root {
+    --forest: #1f2d1f;
+    --pine: #3e5c3b;
+    --sage: #7c8f6a;
+    --coffee: #5a3e2b;
+    --stone: #d9d2c3;
+    --paper: #f6f1e7;
+    --ink: #1c241c;
+}
+
+body {
+    color: var(--ink);
+}
+
+.hku-shell {
+    background:
+        radial-gradient(circle at 12% 18%, rgba(124, 143, 106, 0.34), transparent 34%),
+        linear-gradient(135deg, #182418 0%, var(--forest) 38%, #efe7d7 100%);
+}
+
+.campus-panel {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background-image: url("assets/hku-campus.png");
+    background-size: cover;
+    background-position: left center;
+}
+
+.campus-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        linear-gradient(90deg, rgba(31, 45, 31, 0.88), rgba(62, 92, 59, 0.66)),
+        linear-gradient(180deg, rgba(217, 210, 195, 0.10), rgba(90, 62, 43, 0.28));
+}
+
+.glass-panel {
+    background: rgba(246, 241, 231, 0.94);
+    border: 1px solid rgba(217, 210, 195, 0.72);
+    box-shadow: 0 24px 70px rgba(31, 45, 31, 0.26);
+    backdrop-filter: blur(18px);
+}
+
+.field {
+    border-color: rgba(124, 143, 106, 0.34);
+    background-color: rgba(255, 252, 246, 0.86);
+    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.field:focus {
+    border-color: var(--pine);
+    box-shadow: 0 0 0 4px rgba(124, 143, 106, 0.20);
+    background-color: #fffdf8;
+}
+
+.primary-btn {
+    background: linear-gradient(135deg, var(--pine), var(--forest));
+    box-shadow: 0 12px 26px rgba(31, 45, 31, 0.25);
+}
+
+.primary-btn:hover {
+    filter: brightness(1.08);
+}
+
+.accent-pill {
+    color: #f7f1e7;
+    background: rgba(31, 45, 31, 0.58);
+    border: 1px solid rgba(217, 210, 195, 0.28);
+}
+
+.stone-card {
+    background: rgba(255, 252, 246, 0.88);
+    border: 1px solid rgba(217, 210, 195, 0.78);
+    box-shadow: 0 14px 42px rgba(31, 45, 31, 0.10);
+}
+
+.hku-link {
+    color: var(--pine);
+}
+
+.hku-link:hover {
+    color: var(--forest);
+}
+
+.display-backdrop {
+    background:
+        linear-gradient(90deg, rgba(31, 45, 31, 0.96) 0%, rgba(31, 45, 31, 0.82) 44%, rgba(31, 45, 31, 0.98) 100%),
+        url("assets/hku-campus.png");
+    background-size: cover;
+    background-position: left center;
+}
+
+.admin-backdrop {
+    background:
+        linear-gradient(180deg, rgba(246, 241, 231, 0.92), rgba(217, 210, 195, 0.72)),
+        radial-gradient(circle at 0% 0%, rgba(124, 143, 106, 0.32), transparent 30%);
+}
