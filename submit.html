@@ -130,14 +130,12 @@
         const otpInput = document.getElementById('otpInput');
         const resendOtpBtn = document.getElementById('resendOtpBtn');
         
-        // Configuration bindings matching register.html
         const EMAILJS_SERVICE_ID = "service_soxo4ub";
         const EMAILJS_TEMPLATE_ID = "template_8ak0t74";
 
         const URLParameters = new URLSearchParams(window.location.search);
         const isGuestMode = URLParameters.get('mode') === 'guest';
 
-        // Internal verification flags
         let systemGeneratedOTP = null;
         let isEmailVerified = false;
 
@@ -162,7 +160,7 @@
                         if (nameInput) nameInput.setAttribute('readonly', 'true');
                         if (idInput) idInput.setAttribute('readonly', 'true');
                         if (emailInput) emailInput.setAttribute('readonly', 'true');
-                        isEmailVerified = true; // Logged in accounts skip OTP challenges automatically
+                        isEmailVerified = true; 
                         console.log("Member identity verified. Profile inputs locked safely.");
                     }
                 } catch (error) {
@@ -174,6 +172,7 @@
                 return;
             }
 
+            // --- REVISED GUEST MODE INTERFACE RULES ---
             if (isGuestMode) {
                 const badge = document.getElementById('intakeBadge');
                 const description = document.getElementById('intakeDescription');
@@ -181,15 +180,18 @@
                 if (badge) badge.textContent = 'Guest Access Gateway';
                 if (description) description.textContent = 'Submit your announcement request. Guest credentials require thorough verification.';
                 
-                if (nameInput) nameInput.placeholder = "Enter full legal name";
-                if (idInput) idInput.placeholder = "Enter 10-digit identity sequence";
-                if (emailInput) emailInput.placeholder = "name@example.com";
+                // FIXED: Clear out any pre-typed values from inputs entirely
+                if (nameInput) nameInput.value = "";
+                if (idInput) idInput.value = "";
+                if (emailInput) emailInput.value = "";
+
+                // FIXED: Move hints entirely into the background placeholder attribute box hints
+                if (nameInput) nameInput.placeholder = "Guest Applicant";
+                if (idInput) idInput.placeholder = "0000000000";
+                if (emailInput) emailInput.placeholder = "guest@hku.hk";
             }
         });
 
-        /**
-         * Dispatches OTP challenge tokens utilizing the EmailJS channel config
-         */
         function sendGuestOTP(targetEmail) {
             const generatedPasscode = Math.floor(100000 + Math.random() * 900000).toString();
             systemGeneratedOTP = generatedPasscode;
@@ -212,10 +214,8 @@
                 .then(() => {
                     alert(`A secure verification passcode has been dispatched to guest email: ${targetEmail}\n\nPlease verify this code block below to enable submission access.`);
                     
-                    // Unhide verification inputs dynamically
                     otpSection.classList.remove('hidden');
                     
-                    // Lock input fields down so user cannot substitute target delivery email mid-way
                     document.getElementById('fullName').setAttribute('readonly', 'true');
                     document.getElementById('universityId').setAttribute('readonly', 'true');
                     document.getElementById('preferredEmail').setAttribute('readonly', 'true');
@@ -231,11 +231,9 @@
                 });
         }
 
-        // Handles unified multi-role submission interception logic
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            // Intercept route if active workspace context is Guest and email remains unvalidated
             if (isGuestMode && !isEmailVerified) {
                 const targetEmail = document.getElementById('preferredEmail').value.trim();
                 
@@ -255,20 +253,15 @@
                         return;
                     }
                     
-                    // Code verified successfully! Flag status and commit document directly to database
                     isEmailVerified = true;
                     executeDatabaseCommit();
                 }
                 return;
             }
 
-            // Normal fallthrough execution block for pre-authenticated students
             executeDatabaseCommit();
         });
 
-        /**
-         * Safely posts structured records onto Firestore
-         */
         async function executeDatabaseCommit() {
             const newSubmission = {
                 fullName: form.fullName.value.trim(),
@@ -300,7 +293,6 @@
             }
         }
 
-        // Resend callback listener link
         resendOtpBtn.addEventListener('click', function() {
             const targetEmail = document.getElementById('preferredEmail').value.trim();
             if (targetEmail) {
