@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Display | Campus Bulletin Board</title>
+    <title>Live Campus Display Board</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module" src="./firebase.js"></script>
+    <link rel="stylesheet" href="styles.css">
     <style>
-        /* Carousel horizontal slide animations */
-        .carousel-container {
+        .slide-container {
             position: relative;
-            width: 100%;
-            height: 600px; /* Expands height to give massive layout breathing room */
             overflow: hidden;
+            width: 100%;
+            height: 380px;
         }
-        .carousel-card {
+        .billboard-slide {
             position: absolute;
             top: 0;
             left: 0;
@@ -25,260 +24,232 @@
             transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease-in-out;
             pointer-events: none;
         }
-        .carousel-card.active {
+        .billboard-slide.active {
             opacity: 1;
             transform: translateX(0);
             pointer-events: auto;
         }
-        .carousel-card.exit {
+        .billboard-slide.exit {
             opacity: 0;
             transform: translateX(-100%);
-            pointer-events: none;
-        }
-        /* Custom slide animation for manual reverse tracking (Previous Button) */
-        .carousel-card.exit-reverse {
-            opacity: 0;
-            transform: translateX(100%);
-            pointer-events: none;
-        }
-        .carousel-card.enter-reverse {
-            opacity: 0;
-            transform: translateX(-100%);
-            transition: none;
         }
     </style>
 </head>
-<body class="bg-slate-950 font-sans min-h-screen text-slate-100 p-6 flex flex-col justify-between items-center relative">
+<body class="display-backdrop font-sans text-stone-100 min-h-screen flex flex-col justify-between overflow-hidden relative">
 
-    <button id="prevBtn" class="hidden md:flex fixed left-6 top-1/2 -translate-y-1/2 items-center justify-center w-14 h-14 rounded-full bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition active:scale-95 shadow-2xl z-50 text-xl font-bold">
-        &larr;
-    </button>
+    <div class="fixed inset-x-6 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-50">
+        <button id="prevBtn" class="hidden md:flex items-center justify-center w-14 h-14 rounded-full bg-[#1f2d1f]/85 hover:bg-[#1f2d1f] border border-[#d9d2c3]/30 text-[#d9d2c3] hover:text-[#f6f1e7] transition active:scale-95 shadow-2xl pointer-events-auto text-xl font-bold backdrop-blur">
+            &larr;
+        </button>
+        <button id="nextBtn" class="hidden md:flex items-center justify-center w-14 h-14 rounded-full bg-[#1f2d1f]/85 hover:bg-[#1f2d1f] border border-[#d9d2c3]/30 text-[#d9d2c3] hover:text-[#f6f1e7] transition active:scale-95 shadow-2xl pointer-events-auto text-xl font-bold backdrop-blur">
+            &rarr;
+        </button>
+    </div>
 
-    <button id="nextBtn" class="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 items-center justify-center w-14 h-14 rounded-full bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition active:scale-95 shadow-2xl z-50 text-xl font-bold">
-        &rarr;
-    </button>
-
-    <header class="w-full max-w-6xl mx-auto flex flex-col items-center text-center border-b border-slate-800 pb-4 mb-4 gap-1">
-        <h1 class="text-2xl font-extrabold tracking-tight text-white flex items-center justify-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
-            Campus Live Information Board
-        </h1>
-        <p class="text-xs text-slate-400">Real-time approved student activity feeds</p>
-        <a href="index.html" class="mt-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold px-4 py-1.5 rounded-xl transition text-slate-300">
-            &larr; Access Portal
-        </a>
+    <header class="bg-[#1f2d1f]/90 border-b border-[#d9d2c3]/15 px-8 py-6 flex justify-between items-center shadow-md z-10 backdrop-blur">
+        <div>
+            <h1 class="text-2xl font-black tracking-tight text-[#f6f1e7] uppercase">Campus Live Bulletin</h1>
+            <p class="text-xs text-[#d9d2c3]/70 mt-1">Authorized Announcements Panel · The University of Hong Kong</p>
+        </div>
+        <div class="flex items-center space-x-6">
+            <a href="index.html" class="text-xs text-[#d9d2c3]/75 hover:text-white underline">Portal Gate</a>
+            <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-[#7c8f6a] animate-ping"></span>
+                <span class="text-xs font-mono font-bold tracking-widest uppercase text-[#d9d2c3]/75">Live Feed</span>
+            </div>
+        </div>
     </header>
 
-    <main class="w-full max-w-6xl mx-auto flex-grow flex items-center justify-center">
-        <div id="displayBoardGrid" class="carousel-container">
-            <div class="w-full h-full flex items-center justify-center text-slate-500 font-medium bg-slate-900/40 rounded-2xl border border-slate-900 border-dashed animate-pulse">
-                Synchronizing live grid interface matrix channels...
+    <main class="flex-grow flex items-center justify-center px-4 md:px-12 lg:px-24 max-w-5xl mx-auto w-full">
+        <div id="carouselTrack" class="slide-container">
+            <div class="w-full h-full flex flex-col items-center justify-center text-center bg-[#1f2d1f]/72 border border-[#d9d2c3]/15 rounded-2xl p-8 backdrop-blur">
+                <p class="text-[#f6f1e7] text-xl font-semibold tracking-wide">Preparing Live Bulletin Feed</p>
+                <p class="text-[#d9d2c3]/65 text-sm mt-2">Approved campus announcements will appear here automatically.</p>
             </div>
         </div>
     </main>
 
-    <footer class="w-full max-w-6xl mx-auto pt-4 flex justify-center gap-2" id="carouselIndicators">
+    <footer class="bg-[#1f2d1f]/82 border-t border-[#d9d2c3]/10 px-8 py-4 text-center text-xs text-[#d9d2c3]/60 flex justify-between items-center z-10 backdrop-blur">
+        <span>To submit announcements onto this monitor screen, access the digital intake portal gateway.</span>
+        <span id="slideCounter" class="font-mono bg-[#f6f1e7]/10 border border-[#d9d2c3]/15 text-[#d9d2c3] px-3 py-1 rounded-full text-[11px] font-bold">Item 0 of 0</span>
     </footer>
 
     <script type="module">
-        import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { db } from "./firebase.js";
+        import { collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        let noticesData = [];
-        let activeCardIndex = 0;
-        let rotationTimer = null;
-        const ROTATION_DELAY = 8000; // 8 Seconds per post idling window
+        let currentIndex = 0;
+        let slideInterval = null;
+        let autoRerenderToken = 0;
+        let globalSlides = []; // Keeps track of live rendered nodes safely
+        const animationSpeedDuration = 8000; // Updated to 8 seconds delay!
 
-        async function loadPublicBoard() {
-            const db = window.db;
-            const grid = document.getElementById('displayBoardGrid');
+        function toMillis(value) {
+            if (!value) return 0;
+            if (typeof value === 'number') return value;
+            if (typeof value === 'string') {
+                const n = Date.parse(value);
+                return Number.isFinite(n) ? n : 0;
+            }
+            if (typeof value === 'object' && typeof value.toDate === 'function') return value.toDate().getTime();
+            if (typeof value === 'object' && typeof value.seconds === 'number') return value.seconds * 1000;
+            return 0;
+        }
 
-            if (!db) {
-                setTimeout(loadPublicBoard, 250);
+        function clearCarouselTimers() {
+            if (slideInterval) clearInterval(slideInterval);
+            slideInterval = null;
+        }
+
+        // Handles standard automatic rotation forward
+        function triggerNextSlide() {
+            if (globalSlides.length <= 1) return;
+            
+            const previousSlide = globalSlides[currentIndex];
+            currentIndex = (currentIndex + 1) % globalSlides.length;
+            const nextSlide = globalSlides[currentIndex];
+
+            previousSlide.classList.remove('active');
+            previousSlide.classList.add('exit');
+
+            nextSlide.classList.remove('exit');
+            nextSlide.classList.add('active');
+
+            setTimeout(() => {
+                previousSlide.classList.remove('exit');
+            }, 800);
+
+            document.getElementById('slideCounter').innerText = `Item ${currentIndex + 1} of ${globalSlides.length}`;
+        }
+
+        // Handles manual click navigation backwards
+        function triggerPrevSlide() {
+            if (globalSlides.length <= 1) return;
+
+            const previousSlide = globalSlides[currentIndex];
+            currentIndex = (currentIndex - 1 + globalSlides.length) % globalSlides.length;
+            const nextSlide = globalSlides[currentIndex];
+
+            // Instantly transition position values seamlessly
+            previousSlide.classList.remove('active');
+            nextSlide.classList.add('active');
+
+            document.getElementById('slideCounter').innerText = `Item ${currentIndex + 1} of ${globalSlides.length}`;
+            resetRotationTimer();
+        }
+
+        function resetRotationTimer() {
+            clearCarouselTimers();
+            if (globalSlides.length > 1) {
+                slideInterval = setInterval(triggerNextSlide, animationSpeedDuration);
+            }
+        }
+
+        function buildBillboardCarousel(activeNotices) {
+            const track = document.getElementById('carouselTrack');
+            const counter = document.getElementById('slideCounter');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            clearCarouselTimers();
+
+            const sortedNotices = [...activeNotices].sort((a, b) => toMillis(a.createdAt) - toMillis(b.createdAt));
+
+            if (sortedNotices.length === 0) {
+                track.innerHTML = `
+                    <div class="w-full h-full flex flex-col items-center justify-center text-center">
+                        <p class="text-[#f6f1e7] text-xl font-semibold tracking-wide">No Broadcast Messages Active</p>
+                        <p class="text-[#d9d2c3]/60 text-sm mt-1">Approved announcements will automatically stream onto this board live.</p>
+                    </div>
+                `;
+                counter.innerText = "Item 0 of 0";
+                prevBtn.classList.add('hidden');
+                nextBtn.classList.add('hidden');
+                globalSlides = [];
                 return;
             }
 
-            try {
-                const querySnapshot = await getDocs(collection(db, "bulletinSubmissions"));
-                noticesData = [];
+            track.innerHTML = '';
 
-                querySnapshot.forEach((docInstance) => {
-                    const notice = docInstance.data();
-                    if (notice.status === 'approved') {
-                        noticesData.push(notice);
-                    }
-                });
+            sortedNotices.forEach((item) => {
+                const slide = document.createElement('div');
 
-                noticesData.sort((a, b) => b.id.localeCompare(a.id));
+                const isClub = item.affiliationType === 'Club';
+                const borderTheme = isClub ? 'border-[#7c8f6a]/50 shadow-[#1f2d1f]/40' : 'border-[#d9d2c3]/45 shadow-[#1f2d1f]/40';
+                const badgeTheme = isClub ? 'bg-[#7c8f6a]/16 text-[#f6f1e7] border-[#7c8f6a]/35' : 'bg-[#5a3e2b]/28 text-[#f6f1e7] border-[#d9d2c3]/25';
 
-                if (noticesData.length === 0) {
-                    grid.innerHTML = `
-                        <div class="w-full h-full flex items-center justify-center text-center text-slate-500 font-medium bg-slate-900/30 rounded-2xl border border-slate-900 border-dashed p-8">
-                            No approved announcements are currently set for display.
-                        </div>`;
-                    document.getElementById('carouselIndicators').innerHTML = "";
-                    document.getElementById('prevBtn').classList.add('hidden');
-                    document.getElementById('nextBtn').classList.add('hidden');
-                    return;
-                }
+                const last4 = String(item.universityId || '').slice(-4);
 
-                if (noticesData.length > 1) {
-                    document.getElementById('prevBtn').classList.remove('hidden');
-                    document.getElementById('nextBtn').classList.remove('hidden');
-                }
-
-                buildCarouselMarkup();
-                startCarouselRotation();
-
-            } catch (err) {
-                grid.innerHTML = `<div class="w-full p-4 text-center text-red-400 font-mono font-semibold bg-red-950/20 border border-red-900/50 rounded-xl">Terminal Linkage Loss: ${err.message}</div>`;
-            }
-        }
-
-        function getDynamicTextSizeClass(messageText) {
-            const charCount = messageText.length;
-            
-            if (charCount <= 80) {
-                return "text-4xl md:text-5xl font-extrabold tracking-wide"; 
-            } else if (charCount <= 160) {
-                return "text-2xl md:text-3xl font-bold tracking-wide";      
-            } else {
-                return "text-xl md:text-2xl font-semibold leading-relaxed"; 
-            }
-        }
-
-        function buildCarouselMarkup() {
-            const grid = document.getElementById('displayBoardGrid');
-            const indicatorsContainer = document.getElementById('carouselIndicators');
-            
-            grid.innerHTML = "";
-            indicatorsContainer.innerHTML = "";
-
-            noticesData.forEach((notice, idx) => {
-                const badgeColor = notice.affiliationType === 'Faculty' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-                
-                const cleanMessage = (notice.message || '').trim();
-                const cleanAffiliation = (notice.affiliationName || '').trim();
-                const dynamicSizeClass = getDynamicTextSizeClass(cleanMessage);
-
-                const cardElement = document.createElement('div');
-                cardElement.id = `card-${idx}`;
-                cardElement.className = `carousel-card bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between shadow-2xl`;
-                cardElement.innerHTML = `
-                    <div class="flex flex-col h-full justify-between space-y-4">
-                        <div class="flex items-center justify-between w-full">
-                            <span class="px-3 py-1 text-[11px] font-bold uppercase rounded-md border ${badgeColor}">
-                                ${notice.affiliationType || 'Club'}
+                slide.className = `billboard-slide flex flex-col justify-between bg-[#1f2d1f]/92 border-2 rounded-2xl p-8 md:p-12 shadow-2xl backdrop-blur ${borderTheme}`;
+                slide.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-6 gap-4">
+                            <span class="text-sm font-extrabold uppercase tracking-widest px-3.5 py-1.5 rounded-lg border ${badgeTheme}">
+                                ${item.affiliationName || 'Announcement'}
                             </span>
-                            <span class="text-[11px] font-mono font-medium text-slate-500 bg-slate-950 px-2.5 py-1 rounded-md">
-                                Date: ${notice.displayDate || '---'}
-                            </span>
+                            <span class="text-xs font-mono text-[#d9d2c3]/60 uppercase font-semibold tracking-wider">Date: ${item.displayDate || ''}</span>
                         </div>
-                        
-                        <div class="text-center w-full">
-                            <h3 class="text-3xl font-extrabold text-white tracking-tight mx-auto max-w-4xl">${cleanAffiliation || 'General Announcement'}</h3>
-                            <p class="text-xs text-slate-400 mt-1.5 font-medium">Posted by: ${notice.fullName || 'Anonymous'}</p>
-                        </div>
-
-                        <div class="w-full flex-grow bg-slate-950/60 rounded-xl border border-slate-850 p-8 flex items-center justify-center">
-                            <p class="${dynamicSizeClass} text-slate-100 text-center w-full max-w-5xl mx-auto break-words whitespace-pre-line">
-                                ${cleanMessage || 'No announcement details specified.'}
-                            </p>
-                        </div>
-
-                        <div class="pt-3 border-t border-slate-850 flex items-center justify-between text-[11px] font-mono text-slate-500 w-full">
-                            <span>Ref: #${notice.id ? notice.id.slice(-6) : '000000'}</span>
-                            <span class="text-emerald-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verified Notice
-                            </span>
-                        </div>
+                        <p class="text-2xl md:text-3xl text-[#f6f1e7] font-medium leading-relaxed tracking-wide break-words">
+                            "${item.message || ''}"
+                        </p>
+                    </div>
+                    <div class="border-t border-[#d9d2c3]/15 mt-8 pt-6 text-xs md:text-sm text-[#d9d2c3]/62 flex justify-between items-center font-medium tracking-wide gap-4">
+                        <span class="break-words">Issuer signature: ${item.fullName || ''}</span>
+                        <span class="font-mono bg-[#f6f1e7]/10 border border-[#d9d2c3]/15 px-3 py-1 rounded-md text-[#d9d2c3] text-xs">ID: ****${last4}</span>
                     </div>
                 `;
-                grid.appendChild(cardElement);
-
-                const indicatorDot = document.createElement('button');
-                indicatorDot.id = `dot-${idx}`;
-                indicatorDot.className = `w-2.5 h-2.5 rounded-full bg-slate-800 transition-all duration-300 focus:outline-none`;
-                indicatorDot.onclick = () => jumpToCard(idx);
-                indicatorsContainer.appendChild(indicatorDot);
+                track.appendChild(slide);
             });
 
-            activeCardIndex = 0;
-            updateDOMState(null, activeCardIndex);
-        }
+            currentIndex = 0;
+            globalSlides = document.querySelectorAll('.billboard-slide');
+            if (globalSlides.length === 0) return;
 
-        function updateDOMState(oldIdx, newIdx, direction = 'next') {
-            if (oldIdx !== null) {
-                const oldCard = document.getElementById(`card-${oldIdx}`);
-                const oldDot = document.getElementById(`dot-${oldIdx}`);
-                if (oldCard) {
-                    oldCard.className = `carousel-card bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between shadow-2xl ${direction === 'next' ? 'exit' : 'exit-reverse'}`;
-                }
-                if (oldDot) oldDot.className = "w-2.5 h-2.5 rounded-full bg-slate-800 transition-all duration-300 focus:outline-none";
-            }
+            globalSlides[0].classList.add('active');
+            counter.innerText = `Item 1 of ${globalSlides.length}`;
 
-            const newCard = document.getElementById(`card-${newIdx}`);
-            const newDot = document.getElementById(`dot-${newIdx}`);
-            
-            if (newCard) {
-                if (direction === 'prev') {
-                    newCard.className = "carousel-card bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between shadow-2xl enter-reverse";
-                    newCard.offsetHeight; 
-                }
-
-                setTimeout(() => {
-                    noticesData.forEach((_, i) => {
-                        if (i !== newIdx && i !== oldIdx) {
-                            const clearCard = document.getElementById(`card-${i}`);
-                            if (clearCard) clearCard.className = "carousel-card bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between shadow-2xl";
-                        }
-                    });
-                }, 750);
-
-                newCard.className = "carousel-card bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between shadow-2xl active";
-            }
-            if (newDot) newDot.className = "w-6 h-2.5 rounded-full bg-blue-500 transition-all duration-300 focus:outline-none";
-        }
-
-        function rotateNextCard() {
-            if (noticesData.length <= 1) return;
-            const oldIdx = activeCardIndex;
-            activeCardIndex = (activeCardIndex + 1) % noticesData.length;
-            updateDOMState(oldIdx, activeCardIndex, 'next');
-        }
-
-        function rotatePrevCard() {
-            if (noticesData.length <= 1) return;
-            const oldIdx = activeCardIndex;
-            activeCardIndex = (activeCardIndex - 1 + noticesData.length) % noticesData.length;
-            updateDOMState(oldIdx, activeCardIndex, 'prev');
-            startCarouselRotation(); 
-        }
-
-        function startCarouselRotation() {
-            if (rotationTimer) clearInterval(rotationTimer);
-            if (noticesData.length > 1) {
-                rotationTimer = setInterval(rotateNextCard, ROTATION_DELAY);
+            // Unhide/hide navigation overlay arrows based on post availability counts
+            if (globalSlides.length > 1) {
+                prevBtn.classList.remove('hidden');
+                nextBtn.classList.remove('hidden');
+                resetRotationTimer();
+            } else {
+                prevBtn.classList.add('hidden');
+                nextBtn.classList.add('hidden');
             }
         }
 
-        function jumpToCard(targetIdx) {
-            if (targetIdx === activeCardIndex) return;
-            const oldIdx = activeCardIndex;
-            const direction = targetIdx > activeCardIndex ? 'next' : 'prev';
-            activeCardIndex = targetIdx;
-            updateDOMState(oldIdx, activeCardIndex, direction);
-            startCarouselRotation();
-        }
-
+        // Hook up manual click listeners cleanly to overlay elements
         document.getElementById('nextBtn').addEventListener('click', () => {
-            if (noticesData.length <= 1) return;
-            rotateNextCard();
-            startCarouselRotation(); 
+            triggerNextSlide();
+            resetRotationTimer();
+        });
+        document.getElementById('prevBtn').addEventListener('click', triggerPrevSlide);
+
+        const q = query(
+            collection(db, "bulletinSubmissions"),
+            where("status", "==", "approved")
+        );
+
+        onSnapshot(q, (snapshot) => {
+            autoRerenderToken++;
+            const activeNotices = [];
+            snapshot.forEach(docSnap => {
+                activeNotices.push(docSnap.data());
+            });
+            buildBillboardCarousel(activeNotices);
+        }, (error) => {
+            console.error(error);
+            document.getElementById('carouselTrack').innerHTML = `
+                <div class="w-full h-full flex flex-col items-center justify-center text-center">
+                    <p class="text-red-300 text-xl font-semibold tracking-wide">Failed to load live notices</p>
+                    <p class="text-[#d9d2c3]/60 text-sm mt-1">Check your Firestore rules and internet connection.</p>
+                </div>
+            `;
+            document.getElementById('slideCounter').innerText = "Item 0 of 0";
         });
 
-        document.getElementById('prevBtn').addEventListener('click', rotatePrevCard);
-
-        loadPublicBoard();
+        window.addEventListener('beforeunload', clearCarouselTimers);
     </script>
 </body>
 </html>
