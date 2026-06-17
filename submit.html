@@ -6,6 +6,12 @@
     <title>Submit Request | Campus Bulletin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function() {
+            emailjs.init("e8mvIOZJuoRXgs_K5");
+        })();
+    </script>
 </head>
 <body class="hku-shell font-sans min-h-screen flex items-center justify-center p-4 md:p-8">
 
@@ -87,11 +93,27 @@
                 </div>
             </div>
 
+            <div id="otpVerificationSection" class="hidden space-y-4 border-t border-[#d9d2c3]/60 pt-4 animate-fade-in">
+                <div class="bg-[#f6f1e7]/40 border border-[#d9d2c3] rounded-xl p-3.5 text-center">
+                    <p class="text-xs text-[#5a3e2b]">A guest identity token passcode was routed to your email inbox. Please enter the 6-digit sequence below to complete your submission.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1 text-center">One-Time Password</label>
+                    <input type="text" id="otpInput" placeholder="••••••" maxlength="6" pattern="[0-9]*"
+                        class="w-full text-center tracking-[0.5em] font-mono text-xl font-bold px-3 py-2 border rounded-lg focus:outline-none bg-[#fffcf6] border-[#d9d2c3]">
+                </div>
+                
+                <p class="text-center text-[11px] text-stone-500">
+                    Didn't receive it? <button type="button" id="resendOtpBtn" class="text-[#3e5c3b] font-bold underline hover:text-[#1f2d1f]">Resend code</button>
+                </p>
+            </div>
+
             <div class="pt-2 flex items-center justify-between gap-4">
                 <a href="index.html" class="text-xs font-bold text-[#5a3e2b]/80 hover:text-[#1f2d1f] transition underline">
                     ← Back to Gateway
                 </a>
-                <button type="submit" class="primary-btn px-6 py-2.5 text-white font-semibold rounded-lg transition text-sm shadow-md">
+                <button type="submit" id="submitActionBtn" class="primary-btn px-6 py-2.5 text-white font-semibold rounded-lg transition text-sm shadow-md">
                     Send Submission Request
                 </button>
             </div>
@@ -103,17 +125,27 @@
         import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         const form = document.getElementById('submissionForm');
+        const submitActionBtn = document.getElementById('submitActionBtn');
+        const otpSection = document.getElementById('otpVerificationSection');
+        const otpInput = document.getElementById('otpInput');
+        const resendOtpBtn = document.getElementById('resendOtpBtn');
         
-        // Check parsing parameters for current system mode context parameters
+        // Configuration bindings matching register.html
+        const EMAILJS_SERVICE_ID = "service_soxo4ub";
+        const EMAILJS_TEMPLATE_ID = "template_8ak0t74";
+
         const URLParameters = new URLSearchParams(window.location.search);
         const isGuestMode = URLParameters.get('mode') === 'guest';
+
+        // Internal verification flags
+        let systemGeneratedOTP = null;
+        let isEmailVerified = false;
 
         // --- FIXED AUTOFILL & SECURITY CHECK IMPLEMENTATION ---
         document.addEventListener('DOMContentLoaded', function() {
             const cachedUserString = sessionStorage.getItem('bulletinActiveStudent');
             const userRole = sessionStorage.getItem('bulletinSessionRole');
 
-            // Form inputs mapped by exact ID attributes
             const nameInput = document.getElementById('fullName');
             const idInput = document.getElementById('universityId');
             const emailInput = document.getElementById('preferredEmail');
@@ -122,29 +154,26 @@
                 try {
                     const userData = JSON.parse(cachedUserString);
 
-                    // Inject values retrieved straight from our Firestore session cache object
                     if (nameInput && userData.fullName) nameInput.value = userData.fullName;
                     if (idInput && userData.universityId) idInput.value = userData.universityId;
                     if (emailInput && userData.preferredEmail) emailInput.value = userData.preferredEmail;
 
-                    // Lock inputs as read-only if the actor is an authenticated Student member
                     if (userRole !== 'guest') {
                         if (nameInput) nameInput.setAttribute('readonly', 'true');
                         if (idInput) idInput.setAttribute('readonly', 'true');
                         if (emailInput) emailInput.setAttribute('readonly', 'true');
+                        isEmailVerified = true; // Logged in accounts skip OTP challenges automatically
                         console.log("Member identity verified. Profile inputs locked safely.");
                     }
                 } catch (error) {
                     console.error("Session string parsing anomaly:", error);
                 }
             } else if (!isGuestMode) {
-                // Kick unauthenticated traffic out immediately if no session context structure exists
                 console.warn("Unverified entry block. Rerouting to authorization gate.");
                 window.location.href = 'index.html';
                 return;
             }
 
-            // Adjust interface visual badges if visiting through Guest mode routing links
             if (isGuestMode) {
                 const badge = document.getElementById('intakeBadge');
                 const description = document.getElementById('intakeDescription');
@@ -152,47 +181,130 @@
                 if (badge) badge.textContent = 'Guest Access Gateway';
                 if (description) description.textContent = 'Submit your announcement request. Guest credentials require thorough verification.';
                 
-                // Clear placeholder textual strings for guest input convenience
                 if (nameInput) nameInput.placeholder = "Enter full legal name";
                 if (idInput) idInput.placeholder = "Enter 10-digit identity sequence";
                 if (emailInput) emailInput.placeholder = "name@example.com";
             }
         });
 
-        // Form submission database handler loop logic
+        /**
+         * Dispatches OTP challenge tokens utilizing the EmailJS channel config
+         */
+        function sendGuestOTP(targetEmail) {
+            const generatedPasscode = Math.floor(100000 + Math.random() * 900000).toString();
+            systemGeneratedOTP = generatedPasscode;
+
+            const expiryClock = new Date();
+            expiryClock.setMinutes(expiryClock.getMinutes() + 15);
+            const formattedExpiryString = expiryClock.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            const emailTemplateVariables = {
+                to_email: targetEmail,
+                passcode: generatedPasscode,
+                time: formattedExpiryString
+            };
+
+            emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, emailTemplateVariables)
+                .then(() => {
+                    alert(`A secure verification passcode has been dispatched to guest email: ${targetEmail}\n\nPlease verify this code block below to enable submission access.`);
+                    
+                    // Unhide verification inputs dynamically
+                    otpSection.classList.remove('hidden');
+                    
+                    // Lock input fields down so user cannot substitute target delivery email mid-way
+                    document.getElementById('fullName').setAttribute('readonly', 'true');
+                    document.getElementById('universityId').setAttribute('readonly', 'true');
+                    document.getElementById('preferredEmail').setAttribute('readonly', 'true');
+                    
+                    submitActionBtn.disabled = false;
+                    submitActionBtn.textContent = 'Verify Code & Submit Request';
+                })
+                .catch((emailError) => {
+                    console.error("EmailJS delivery loop crashed:", emailError);
+                    alert("Failed to deliver security verification token: " + emailError.text);
+                    submitActionBtn.disabled = false;
+                    submitActionBtn.textContent = 'Send Submission Request';
+                });
+        }
+
+        // Handles unified multi-role submission interception logic
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // Intercept route if active workspace context is Guest and email remains unvalidated
+            if (isGuestMode && !isEmailVerified) {
+                const targetEmail = document.getElementById('preferredEmail').value.trim();
+                
+                if (systemGeneratedOTP === null) {
+                    submitActionBtn.disabled = true;
+                    submitActionBtn.textContent = 'Sending Verification Code...';
+                    sendGuestOTP(targetEmail);
+                } else {
+                    const userInputValue = otpInput.value.trim();
+                    
+                    if (!userInputValue) {
+                        alert("Please input the 6-digit verification code sent to your email.");
+                        return;
+                    }
+                    if (userInputValue !== systemGeneratedOTP) {
+                        alert("The verification code you provided does not match our records. Please verify input or click resend.");
+                        return;
+                    }
+                    
+                    // Code verified successfully! Flag status and commit document directly to database
+                    isEmailVerified = true;
+                    executeDatabaseCommit();
+                }
+                return;
+            }
+
+            // Normal fallthrough execution block for pre-authenticated students
+            executeDatabaseCommit();
+        });
+
+        /**
+         * Safely posts structured records onto Firestore
+         */
+        async function executeDatabaseCommit() {
             const newSubmission = {
-                fullName: this.fullName.value.trim(),
-                universityId: this.universityId.value.trim(),
-                preferredEmail: this.preferredEmail.value.trim(),
-                affiliationType: this.affiliationType.value,
-                affiliationName: this.affiliationName.value.trim(),
-                displayDate: this.displayDate.value,
-                message: this.message.value.trim(),
+                fullName: form.fullName.value.trim(),
+                universityId: form.universityId.value.trim(),
+                preferredEmail: form.preferredEmail.value.trim(),
+                affiliationType: form.affiliationType.value,
+                affiliationName: form.affiliationName.value.trim(),
+                displayDate: form.displayDate.value,
+                message: form.message.value.trim(),
                 submittedVia: isGuestMode ? 'guest' : 'portal',
                 status: 'pending',
                 createdAt: serverTimestamp()
             };
 
-            const button = this.querySelector('button[type="submit"]');
-            const originalText = button.textContent;
-            button.disabled = true;
-            button.textContent = 'Submitting...';
+            submitActionBtn.disabled = true;
+            submitActionBtn.textContent = 'Submitting...';
 
             try {
-                // Upload document record to collection array matching rules validation paths
                 await addDoc(collection(db, "bulletinSubmissions"), newSubmission);
                 alert('Submission sent successfully! It will now await review panel clearance.');
-                this.reset();
+                form.reset();
+                systemGeneratedOTP = null;
                 window.location.href = 'index.html';
             } catch (error) {
                 console.error('Submission transaction crash logged:', error);
                 alert('Submission transfer network failure: ' + error.message);
-            } finally {
-                button.disabled = false;
-                button.textContent = originalText;
+                submitActionBtn.disabled = false;
+                submitActionBtn.textContent = isGuestMode ? 'Verify Code & Submit Request' : 'Send Submission Request';
+            }
+        }
+
+        // Resend callback listener link
+        resendOtpBtn.addEventListener('click', function() {
+            const targetEmail = document.getElementById('preferredEmail').value.trim();
+            if (targetEmail) {
+                sendGuestOTP(targetEmail);
             }
         });
     </script>
