@@ -48,7 +48,15 @@
         }
     </style>
 </head>
-<body class="bg-slate-950 font-sans min-h-screen text-slate-100 p-6 flex flex-col justify-between items-center">
+<body class="bg-slate-950 font-sans min-h-screen text-slate-100 p-6 flex flex-col justify-between items-center relative">
+
+    <button id="prevBtn" class="hidden md:flex fixed left-6 top-1/2 -translate-y-1/2 items-center justify-center w-14 h-14 rounded-full bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition active:scale-95 shadow-2xl z-50 text-xl font-bold">
+        &larr;
+    </button>
+
+    <button id="nextBtn" class="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 items-center justify-center w-14 h-14 rounded-full bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition active:scale-95 shadow-2xl z-50 text-xl font-bold">
+        &rarr;
+    </button>
 
     <header class="w-full max-w-6xl mx-auto flex flex-col items-center text-center border-b border-slate-800 pb-4 mb-4 gap-1">
         <h1 class="text-2xl font-extrabold tracking-tight text-white flex items-center justify-center gap-3">
@@ -61,22 +69,12 @@
         </a>
     </header>
 
-    <main class="w-full max-w-7xl mx-auto flex-grow flex items-center justify-center gap-6">
-        
-        <button id="prevBtn" class="hidden md:flex items-center justify-center w-14 h-14 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition active:scale-95 shadow-xl shrink-0 z-10 text-xl font-bold">
-            &#8592;
-        </button>
-
-        <div id="displayBoardGrid" class="carousel-container flex-grow max-w-6xl">
+    <main class="w-full max-w-6xl mx-auto flex-grow flex items-center justify-center">
+        <div id="displayBoardGrid" class="carousel-container">
             <div class="w-full h-full flex items-center justify-center text-slate-500 font-medium bg-slate-900/40 rounded-2xl border border-slate-900 border-dashed animate-pulse">
                 Synchronizing live grid interface matrix channels...
             </div>
         </div>
-
-        <button id="nextBtn" class="hidden md:flex items-center justify-center w-14 h-14 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition active:scale-95 shadow-xl shrink-0 z-10 text-xl font-bold">
-            &#8594;
-        </button>
-
     </main>
 
     <footer class="w-full max-w-6xl mx-auto pt-4 flex justify-center gap-2" id="carouselIndicators">
@@ -88,7 +86,7 @@
         let noticesData = [];
         let activeCardIndex = 0;
         let rotationTimer = null;
-        const ROTATION_DELAY = 8000; // Increased to 8 seconds as requested!
+        const ROTATION_DELAY = 8000; // 8 Seconds per post idling window
 
         async function loadPublicBoard() {
             const db = window.db;
@@ -123,7 +121,6 @@
                     return;
                 }
 
-                // Show navigation arrows if notices are available
                 if (noticesData.length > 1) {
                     document.getElementById('prevBtn').classList.remove('hidden');
                     document.getElementById('nextBtn').classList.remove('hidden');
@@ -137,7 +134,6 @@
             }
         }
 
-        // Helper function to calculate font size class based on message length
         function getDynamicTextSizeClass(messageText) {
             const charCount = messageText.length;
             
@@ -225,9 +221,7 @@
             
             if (newCard) {
                 if (direction === 'prev') {
-                    // Set up entry layout variant position for backwards travel tracking
                     newCard.className = "carousel-card bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between shadow-2xl enter-reverse";
-                    // Force DOM reflow to process layout swap instantly before triggering transition
                     newCard.offsetHeight; 
                 }
 
@@ -257,7 +251,7 @@
             const oldIdx = activeCardIndex;
             activeCardIndex = (activeCardIndex - 1 + noticesData.length) % noticesData.length;
             updateDOMState(oldIdx, activeCardIndex, 'prev');
-            startCarouselRotation(); // Reset the 8s idling window
+            startCarouselRotation(); 
         }
 
         function startCarouselRotation() {
@@ -276,11 +270,10 @@
             startCarouselRotation();
         }
 
-        // Attach Click Event Handlers directly to buttons
         document.getElementById('nextBtn').addEventListener('click', () => {
             if (noticesData.length <= 1) return;
             rotateNextCard();
-            startCarouselRotation(); // Resets timer countdown cleanly
+            startCarouselRotation(); 
         });
 
         document.getElementById('prevBtn').addEventListener('click', rotatePrevCard);
