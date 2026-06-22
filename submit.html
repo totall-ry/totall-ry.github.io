@@ -80,13 +80,18 @@
                 </div>
             </div>
 
-            <div class="space-y-4 border-t border-[#d9d2c3]/60 pt-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-[#d9d2c3]/60 pt-4">
                 <div>
-                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Target Visual Launch Date</label>
-                    <input type="date" name="displayDate" required
+                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Target Visual End Date</label>
+                    <input type="date" name="displayDate" id="displayDate" required
                         class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm">
                 </div>
                 <div>
+                    <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Target Visual End Time</label>
+                    <input type="time" name="displayTime" id="displayTime" required
+                        class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm bg-[#fffcf6]">
+                </div>
+                <div class="sm:col-span-2">
                     <label class="block text-xs font-semibold text-[#3e5c3b] uppercase mb-1">Board Notice Message Block</label>
                     <textarea name="message" required rows="4" placeholder="Compose the content details of your announcement here..."
                         class="field w-full px-3 py-2 border rounded-lg focus:outline-none text-sm resize-none"></textarea>
@@ -139,7 +144,6 @@
         let systemGeneratedOTP = null;
         let isEmailVerified = false;
 
-        // --- FIXED AUTOFILL & SECURITY CHECK IMPLEMENTATION ---
         document.addEventListener('DOMContentLoaded', function() {
             const cachedUserString = sessionStorage.getItem('bulletinActiveStudent');
             const userRole = sessionStorage.getItem('bulletinSessionRole');
@@ -172,7 +176,6 @@
                 return;
             }
 
-            // --- REVISED GUEST MODE INTERFACE RULES ---
             if (isGuestMode) {
                 const badge = document.getElementById('intakeBadge');
                 const description = document.getElementById('intakeDescription');
@@ -180,12 +183,10 @@
                 if (badge) badge.textContent = 'Guest Access Gateway';
                 if (description) description.textContent = 'Submit your announcement request. Guest credentials require thorough verification.';
                 
-                // FIXED: Clear out any pre-typed values from inputs entirely
                 if (nameInput) nameInput.value = "";
                 if (idInput) idInput.value = "";
                 if (emailInput) emailInput.value = "";
 
-                // FIXED: Move hints entirely into the background placeholder attribute box hints
                 if (nameInput) nameInput.placeholder = "Guest Applicant";
                 if (idInput) idInput.placeholder = "0000000000";
                 if (emailInput) emailInput.placeholder = "guest@hku.hk";
@@ -263,6 +264,7 @@
         });
 
         async function executeDatabaseCommit() {
+            // ENHANCED: Collects displayTime alongside displayDate for hourly tracking windows
             const newSubmission = {
                 fullName: form.fullName.value.trim(),
                 universityId: form.universityId.value.trim(),
@@ -270,6 +272,7 @@
                 affiliationType: form.affiliationType.value,
                 affiliationName: form.affiliationName.value.trim(),
                 displayDate: form.displayDate.value,
+                displayTime: form.displayTime.value, // Added tracking property mapping
                 message: form.message.value.trim(),
                 submittedVia: isGuestMode ? 'guest' : 'portal',
                 status: 'pending',
