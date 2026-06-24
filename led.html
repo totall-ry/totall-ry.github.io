@@ -64,7 +64,7 @@ body::before {
     display: flex; 
     flex-direction: row;
     flex-wrap: nowrap;
-    animation: scroll var(--scroll-duration, 60s) linear infinite;
+    animation: scroll var(--scroll-duration, 20s) linear infinite;
 }
 
 .marquee span {
@@ -158,7 +158,7 @@ function renderMessages(items) {
 
     if (items.length === 0) {
         display.innerHTML = "<span>NO</span><span>&nbsp;</span><span>ACTIVE</span><span>&nbsp;</span><span>BULLETINS</span>";
-        display.style.setProperty("--scroll-duration", "15s");
+        display.style.setProperty("--scroll-duration", "5s");
         return;
     }
 
@@ -181,9 +181,9 @@ function renderMessages(items) {
         return `<span>${char}</span>`;
     }).join("");
 
-    // Dynamically calculate speed based on character length so it scrolls smoothly
+    // SPEED PARAMETER MODIFIED: Using divisor 450 (3x faster than original 150 calculation)
     const textWidth = display.scrollWidth || (rawText.length * 120);
-    const calculatedDuration = Math.max(Math.round(textWidth / 150), 20); 
+    const calculatedDuration = Math.max(Math.round(textWidth / 450), 7); 
     display.style.setProperty("--scroll-duration", `${calculatedDuration}s`);
 }
 
@@ -237,7 +237,7 @@ onSnapshot(q, async (snapshot) => {
 
     if (statusEl) {
         statusEl.textContent = activeItems.length === 0 ? 'No active tickers approved.' : 'Live LED Sync Operational';
-        setTimeout(() => { statusEl.style.opacity = '0.2'; }, 4000); // Fades out the status indicator after initialization
+        setTimeout(() => { statusEl.style.opacity = '0.2'; }, 4000);
     }
 
     renderMessages(activeItems);
