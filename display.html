@@ -33,6 +33,21 @@
             opacity: 0;
             transform: translateX(-100%);
         }
+        /* Custom clean scrollbar styling for the mobile text blocks */
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(217, 210, 195, 0.3);
+            border-radius: 10px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(217, 210, 195, 0.5);
+        }
     </style>
 </head>
 <body class="display-backdrop font-sans text-stone-100 min-h-screen flex flex-col justify-between overflow-hidden relative">
@@ -76,13 +91,13 @@
 
     <script type="module">
         import { db } from "./firebase.js";
-        import { collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { collection, query, where, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         let currentIndex = 0;
         let slideInterval = null;
         let autoRerenderToken = 0;
-        let globalSlides = []; // Keeps track of live rendered nodes safely
-        const animationSpeedDuration = 8000; // Updated to 8 seconds delay!
+        let globalSlides = []; 
+        const animationSpeedDuration = 8000; 
 
         function toMillis(value) {
             if (!value) return 0;
@@ -101,7 +116,6 @@
             slideInterval = null;
         }
 
-        // Handles standard automatic rotation forward
         function triggerNextSlide() {
             if (globalSlides.length <= 1) return;
             
@@ -122,7 +136,6 @@
             document.getElementById('slideCounter').innerText = `Item ${currentIndex + 1} of ${globalSlides.length}`;
         }
 
-        // Handles manual click navigation backwards
         function triggerPrevSlide() {
             if (globalSlides.length <= 1) return;
 
@@ -130,7 +143,6 @@
             currentIndex = (currentIndex - 1 + globalSlides.length) % globalSlides.length;
             const nextSlide = globalSlides[currentIndex];
 
-            // Instantly transition position values seamlessly
             previousSlide.classList.remove('active');
             nextSlide.classList.add('active');
 
@@ -179,23 +191,26 @@
                 const badgeTheme = isClub ? 'bg-[#7c8f6a]/16 text-[#f6f1e7] border-[#7c8f6a]/35' : 'bg-[#5a3e2b]/28 text-[#f6f1e7] border-[#d9d2c3]/25';
 
                 const last4 = String(item.universityId || '').slice(-4);
+                const formattedTime = item.displayTime ? `@ ${item.displayTime}` : '';
 
-                slide.className = `billboard-slide flex flex-col justify-between bg-[#1f2d1f]/92 border-2 rounded-2xl p-8 md:p-12 shadow-2xl backdrop-blur ${borderTheme}`;
+                slide.className = `billboard-slide flex flex-col justify-between bg-[#1f2d1f]/92 border-2 rounded-2xl p-6 md:p-12 shadow-2xl backdrop-blur ${borderTheme}`;
+                
+                // MOBILE PROTECTION UPDATE: Added max-h overflow rules directly into the message element layout class string below
                 slide.innerHTML = `
-                    <div>
-                        <div class="flex justify-between items-start mb-6 gap-4">
-                            <span class="text-sm font-extrabold uppercase tracking-widest px-3.5 py-1.5 rounded-lg border ${badgeTheme}">
+                    <div class="flex flex-col min-h-0 flex-grow">
+                        <div class="flex justify-between items-start mb-4 md:mb-6 gap-4 flex-shrink-0">
+                            <span class="text-xs md:text-sm font-extrabold uppercase tracking-widest px-3 py-1 md:px-3.5 md:py-1.5 rounded-lg border ${badgeTheme} truncate max-w-[180px] sm:max-w-none">
                                 ${item.affiliationName || 'Announcement'}
                             </span>
-                            <span class="text-xs font-mono text-[#d9d2c3]/60 uppercase font-semibold tracking-wider">Date: ${item.displayDate || ''}</span>
+                            <span class="text-[10px] md:text-xs font-mono text-[#d9d2c3]/60 uppercase font-semibold tracking-wider whitespace-nowrap">Ends: ${item.displayDate || ''} ${formattedTime}</span>
                         </div>
-                        <p class="text-2xl md:text-3xl text-[#f6f1e7] font-medium leading-relaxed tracking-wide break-words">
+                        <p class="text-lg md:text-2xl lg:text-3xl text-[#f6f1e7] font-medium leading-relaxed tracking-wide break-words overflow-y-auto max-h-[170px] md:max-h-none pr-2 custom-scroll flex-grow min-h-0">
                             "${item.message || ''}"
                         </p>
                     </div>
-                    <div class="border-t border-[#d9d2c3]/15 mt-8 pt-6 text-xs md:text-sm text-[#d9d2c3]/62 flex justify-between items-center font-medium tracking-wide gap-4">
-                        <span class="break-words">Issuer signature: ${item.fullName || ''}</span>
-                        <span class="font-mono bg-[#f6f1e7]/10 border border-[#d9d2c3]/15 px-3 py-1 rounded-md text-[#d9d2c3] text-xs">ID: ****${last4}</span>
+                    <div class="border-t border-[#d9d2c3]/15 mt-4 md:mt-8 pt-4 md:pt-6 text-xs md:text-sm text-[#d9d2c3]/62 flex justify-between items-center font-medium tracking-wide gap-4 flex-shrink-0">
+                        <span class="break-words truncate max-w-[150px] sm:max-w-none">Issuer: ${item.fullName || ''}</span>
+                        <span class="font-mono bg-[#f6f1e7]/10 border border-[#d9d2c3]/15 px-2.5 py-0.5 md:px-3 md:py-1 rounded-md text-[#d9d2c3] text-[11px] md:text-xs whitespace-nowrap">ID: ****${last4}</span>
                     </div>
                 `;
                 track.appendChild(slide);
@@ -208,7 +223,6 @@
             globalSlides[0].classList.add('active');
             counter.innerText = `Item 1 of ${globalSlides.length}`;
 
-            // Unhide/hide navigation overlay arrows based on post availability counts
             if (globalSlides.length > 1) {
                 prevBtn.classList.remove('hidden');
                 nextBtn.classList.remove('hidden');
@@ -219,7 +233,6 @@
             }
         }
 
-        // Hook up manual click listeners cleanly to overlay elements
         document.getElementById('nextBtn').addEventListener('click', () => {
             triggerNextSlide();
             resetRotationTimer();
@@ -231,13 +244,47 @@
             where("status", "==", "approved")
         );
 
-        onSnapshot(q, (snapshot) => {
+        onSnapshot(q, async (snapshot) => {
             autoRerenderToken++;
-            const activeNotices = [];
+            
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const todayString = `${year}-${month}-${date}`;
+
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const currentTimeString = `${hours}:${minutes}`;
+
+            const validActiveNotices = [];
+            const revocationPromises = [];
+
             snapshot.forEach(docSnap => {
-                activeNotices.push(docSnap.data());
+                const item = docSnap.data();
+                const isPastDate = item.displayDate < todayString;
+                const isPastTimeToday = (item.displayDate === todayString && item.displayTime && item.displayTime <= currentTimeString);
+
+                if (isPastDate || isPastTimeToday) {
+                    const docReference = doc(db, "bulletinSubmissions", docSnap.id);
+                    revocationPromises.push(updateDoc(docReference, {
+                        status: "denied",
+                        logNotes: "Rejected: Revoked automatically by system due to schedule expiration."
+                    }));
+                } else {
+                    validActiveNotices.push(item);
+                }
             });
-            buildBillboardCarousel(activeNotices);
+
+            if (revocationPromises.length > 0) {
+                try {
+                    await Promise.all(revocationPromises);
+                } catch (err) {
+                    console.error("Self-cleaning pipeline fault:", err);
+                }
+            }
+
+            buildBillboardCarousel(validActiveNotices);
         }, (error) => {
             console.error(error);
             document.getElementById('carouselTrack').innerHTML = `
